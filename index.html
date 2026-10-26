@@ -592,14 +592,27 @@
         }
 
         function onScanSuccess(decodedText, decodedResult) {
-            // Decoded text format: "ItemName,Price"
+            // Decoded text format: JSON string {"name": "...", "price": 1000} or legacy "ItemName,Price"
             stopQRScan();
             try {
-                const parts = decodedText.split(',');
-                if (parts.length >= 2) {
-                    const itemName = parts[0].trim();
-                    const itemPrice = Number(parts[1].trim()) || 0;
+                let itemName = '';
+                let itemPrice = 0;
 
+                // Try parsing JSON format first
+                if (decodedText.trim().startsWith('{')) {
+                    const parsed = JSON.parse(decodedText);
+                    itemName = parsed.name || '';
+                    itemPrice = Number(parsed.price) || 0;
+                } else {
+                    // Legacy CSV Fallback
+                    const parts = decodedText.split(',');
+                    if (parts.length >= 2) {
+                        itemName = parts[0].trim();
+                        itemPrice = Number(parts[1].trim()) || 0;
+                    }
+                }
+
+                if (itemName) {
                     if (currentScanTarget === 'sell') {
                         document.getElementById('sell-name').value = itemName;
                         document.getElementById('sell-qty').value = 1;
@@ -616,6 +629,7 @@
                     showToast("올바른 알뜰시장 QR 코드가 아닙니다.");
                 }
             } catch (e) {
+                console.error("QR Code Parsing Error:", e);
                 showToast("QR 코드 인식 중 오류가 발생했습니다.");
             }
         }
@@ -648,29 +662,35 @@
 
         function generateQRLabel() {
             const name = document.getElementById('gen-item-name').value.trim();
-            const price = document.getElementById('gen-item-price').value.trim();
+            const priceVal = document.getElementById('gen-item-price').value.trim();
+            const price = Number(priceVal);
 
-            if (!name || !price) {
-                showToast("물건 이름과 가격을 입력해주세요!");
+            if (!name || isNaN(price) || priceVal === '') {
+                showToast("물건 이름과 올바른 가격을 입력해주세요!");
                 return;
             }
 
             document.getElementById('label-display-name').innerText = name;
-            document.getElementById('label-display-price').innerText = `${Number(price).toLocaleString()}원`;
+            document.getElementById('label-display-price').innerText = `${price.toLocaleString()}원`;
 
             const qrBox = document.getElementById('qrcode-box');
             qrBox.innerHTML = '';
-            
-            // Format: "Name,Price"
-            const qrData = `${name},${price}`;
-            new QRCode(qrBox, {
-                text: qrData,
-                width: 128,
-                height: 128
-            });
+
+            // Output JSON format for stable parsing
+            const qrData = JSON.stringify({ name: name, price: price });
 
             document.getElementById('qr-label-output').classList.remove('hidden');
-            showToast("QR 코드 라벨이 생성되었습니다!");
+
+            // Timeout to ensure DOM element is ready for qrcode.js rendering
+            setTimeout(() => {
+                new QRCode(qrBox, {
+                    text: qrData,
+                    width: 160,
+                    height: 160,
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+                showToast("QR 코드 라벨이 생성되었습니다!");
+            }, 50);
         }
 
         // Render Avatar Options
