@@ -129,30 +129,30 @@
         <!-- STEP 2: Main Menu Navigation -->
         <section id="menu-section" class="hidden space-y-6">
             <!-- Welcome Banner -->
-            <div class="gradient-bg p-6 rounded-3xl shadow-sm text-slate-800 flex flex-col md:flex-row justify-between items-center gap-4">
-                <div class="flex items-center gap-4">
-                    <div id="display-avatar" class="text-4xl bg-white/60 p-3 rounded-2xl shadow-inner">🐶</div>
+            <div class="bg-gradient-to-r from-teal-100 via-sky-100 to-pink-100 p-5 md:p-6 rounded-3xl shadow-sm border border-teal-100/50 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-4 w-full md:w-auto">
+                    <div id="display-avatar" class="text-4xl bg-white/80 p-3 rounded-2xl shadow-sm shrink-0 flex items-center justify-center border border-white">🐶</div>
                     <div>
-                        <div class="flex items-center gap-2">
-                            <h2 id="display-name" class="text-xl font-bold">김휘봉 학생</h2>
-                            <span id="display-class" class="text-xs bg-white/80 px-2.5 py-1 rounded-full font-bold text-slate-600">6학년 1반 15번</span>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h2 id="display-name" class="text-xl font-black text-slate-800">김휘봉 학생</h2>
+                            <span id="display-class" class="text-xs bg-white/90 px-3 py-1 rounded-full font-bold text-slate-600 border border-slate-200/50 shadow-xs">5학년 1반 1번</span>
                         </div>
-                        <p class="text-xs text-slate-600 mt-1">오늘의 알뜰시장 기록을 꼼꼼하게 작성해봐요!</p>
+                        <p class="text-xs text-slate-500 font-medium mt-1">오늘의 알뜰시장 기록을 꼼꼼하게 작성해봐요!</p>
                     </div>
                 </div>
-                <div class="bg-white/80 backdrop-blur-sm px-4 py-2.5 rounded-2xl text-center w-full md:w-auto">
-                    <span class="text-xs text-slate-500 font-medium block">기초 준비금 (시드머니)</span>
-                    <span class="text-lg font-black text-amber-600">32 개 (통일)</span>
+                <div class="bg-white/90 backdrop-blur-sm px-6 py-3 rounded-2xl text-center w-full md:w-auto shadow-sm border border-white/60 shrink-0">
+                    <span class="text-[11px] text-slate-500 font-bold block mb-0.5">기초 준비금 (시드머니)</span>
+                    <span class="text-xl font-black text-amber-500">32 개 (통일)</span>
                 </div>
             </div>
 
             <!-- Tab Buttons -->
-            <div class="grid grid-cols-2 gap-3">
-                <button onclick="switchTab('ledger')" id="tab-ledger-btn" class="p-4 rounded-2xl border-2 border-amber-400 bg-amber-50 text-amber-900 font-extrabold flex items-center justify-center gap-2 transition-all shadow-sm">
-                    <i class="fa-solid fa-calculator text-lg"></i> 1. 가계부 적기
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="switchTab('ledger')" id="tab-ledger-btn" class="p-4 rounded-2xl border-2 border-amber-400 bg-amber-50/50 text-amber-900 font-extrabold flex items-center justify-center gap-2 transition-all shadow-sm text-sm md:text-base">
+                    <i class="fa-solid fa-calculator text-lg text-amber-700"></i> 1. 가계부 적기
                 </button>
-                <button onclick="switchTab('review')" id="tab-review-btn" class="p-4 rounded-2xl border-2 border-transparent bg-white hover:bg-slate-50 text-slate-600 font-bold flex items-center justify-center gap-2 transition-all shadow-sm">
-                    <i class="fa-solid fa-pen-to-square text-lg"></i> 2. 소감문 쓰기
+                <button onclick="switchTab('review')" id="tab-review-btn" class="p-4 rounded-2xl border-2 border-transparent bg-white hover:bg-slate-50 text-slate-600 font-bold flex items-center justify-center gap-2 transition-all shadow-sm text-sm md:text-base">
+                    <i class="fa-solid fa-pen-to-square text-lg text-slate-500"></i> 2. 소감문 쓰기
                 </button>
             </div>
 
@@ -161,39 +161,41 @@
                 <!-- Sales & Purchases Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Income Section (판매 물건) -->
-                    <div class="bg-white p-5 rounded-3xl card-shadow border border-emerald-100 flex flex-col justify-between">
+                    <div class="bg-white p-5 rounded-3xl card-shadow border border-emerald-200/60 flex flex-col justify-between">
                         <div>
-                            <div class="flex justify-between items-center mb-3">
-                                <h3 class="font-extrabold text-emerald-700 flex items-center gap-2 text-base">
-                                    <span class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs"><i class="fa-solid fa-arrow-down-left"></i></span>
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="font-extrabold text-emerald-600 flex items-center gap-2 text-base">
+                                    <span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs"><i class="fa-solid fa-square"></i></span>
                                     판매 물건 (수입)
                                 </h3>
-                                <span class="text-xs bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-lg font-bold">수입 목록</span>
+                                <span class="text-xs bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full font-extrabold border border-emerald-100">수입 목록</span>
                             </div>
 
                             <!-- Big Selling Total Box -->
-                            <div class="bg-emerald-50/80 border border-emerald-200 p-3.5 rounded-2xl mb-4 text-center">
-                                <span class="text-xs text-emerald-700 font-extrabold block mb-0.5">💰 판매금액 합계</span>
-                                <span id="section-sell-total" class="text-2xl font-black text-emerald-600">0원</span>
+                            <div class="bg-emerald-50/50 border border-emerald-200/80 p-4 rounded-2xl mb-4 text-center">
+                                <span class="text-xs text-emerald-700 font-extrabold flex items-center justify-center gap-1 mb-1">
+                                    <span>💰</span> 판매금액 합계
+                                </span>
+                                <span id="section-sell-total" class="text-3xl font-black text-emerald-600">0원</span>
                             </div>
 
                             <!-- QR Scan Trigger Button for Sell -->
-                            <button onclick="startQRScan('sell')" class="w-full mb-3 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all">
-                                <i class="fa-solid fa-camera text-sm"></i> 📷 QR 코드로 판매 물품 자동 채우기
+                            <button onclick="startQRScan('sell')" class="w-full mb-4 py-2.5 bg-emerald-100/70 hover:bg-emerald-200/80 text-emerald-800 font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all">
+                                📷 📷 QR 코드로 판매 물품 자동 채우기
                             </button>
 
-                            <form id="sell-form" onsubmit="addTransaction(event, 'sell')" class="space-y-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-100 mb-4">
-                                <input type="text" id="sell-name" placeholder="물건 이름 (예: 공룡 인형)" required class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                            <form id="sell-form" onsubmit="addTransaction(event, 'sell')" class="space-y-3 bg-slate-50/80 p-4 rounded-2xl border border-slate-100 mb-4">
+                                <input type="text" id="sell-name" placeholder="물건 이름 (예: 공룡 인형)" required class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400">
                                 <div class="grid grid-cols-2 gap-2">
-                                    <input type="number" id="sell-qty" min="1" placeholder="수량" required oninput="calcTotal('sell')" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400">
-                                    <input type="number" id="sell-price" min="0" placeholder="단가(원/개)" required oninput="calcTotal('sell')" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                                    <input type="number" id="sell-qty" min="1" placeholder="수량" required oninput="calcTotal('sell')" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                                    <input type="number" id="sell-price" min="0" placeholder="단가(원/개)" required oninput="calcTotal('sell')" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400">
                                 </div>
                                 <div class="flex justify-between items-center text-xs px-1 text-slate-500 font-medium">
                                     <span>입력 중 총 금액:</span>
                                     <span id="sell-total-preview" class="font-bold text-emerald-600">0원</span>
                                 </div>
-                                <input type="text" id="sell-memo" placeholder="비고/메모 (예: 친구에게 500원 할인!)" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400">
-                                <button type="submit" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl text-xs shadow-md shadow-emerald-200 transition-all">
+                                <input type="text" id="sell-memo" placeholder="비고/메모 (예: 친구에게 500원 할인!)" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                                <button type="submit" class="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold rounded-xl text-xs shadow-md shadow-emerald-200 transition-all">
                                     + 판매 내역 추가하기
                                 </button>
                             </form>
@@ -206,38 +208,40 @@
                     </div>
 
                     <!-- Expense Section (구입 물건) -->
-                    <div class="bg-white p-5 rounded-3xl card-shadow border border-rose-100 flex flex-col justify-between">
+                    <div class="bg-white p-5 rounded-3xl card-shadow border border-rose-200/60 flex flex-col justify-between">
                         <div>
-                            <div class="flex justify-between items-center mb-3">
-                                <h3 class="font-extrabold text-rose-700 flex items-center gap-2 text-base">
-                                    <span class="w-7 h-7 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center text-xs"><i class="fa-solid fa-arrow-up-right"></i></span>
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="font-extrabold text-rose-600 flex items-center gap-2 text-base">
+                                    <span class="w-6 h-6 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center text-xs"><i class="fa-solid fa-square"></i></span>
                                     구입 물건 (지출)
                                 </h3>
-                                <span class="text-xs bg-rose-50 text-rose-600 px-2.5 py-1 rounded-lg font-bold">지출 목록</span>
+                                <span class="text-xs bg-rose-50 text-rose-600 px-3 py-1 rounded-full font-extrabold border border-rose-100">지출 목록</span>
                             </div>
 
                             <!-- Big Buying Total Box -->
-                            <div class="bg-rose-50/80 border border-rose-200 p-3.5 rounded-2xl mb-4 text-center">
-                                <span class="text-xs text-rose-700 font-extrabold block mb-0.5">🛒 구매금액 합계</span>
-                                <span id="section-buy-total" class="text-2xl font-black text-rose-600">0원</span>
+                            <div class="bg-rose-50/50 border border-rose-200/80 p-4 rounded-2xl mb-4 text-center">
+                                <span class="text-xs text-rose-700 font-extrabold flex items-center justify-center gap-1 mb-1">
+                                    <span>🛒</span> 구매금액 합계
+                                </span>
+                                <span id="section-buy-total" class="text-3xl font-black text-rose-600">0원</span>
                             </div>
 
                             <!-- QR Scan Trigger Button for Buy -->
-                            <button onclick="startQRScan('buy')" class="w-full mb-3 py-2 bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all">
-                                <i class="fa-solid fa-camera text-sm"></i> 📷 QR 코드로 구입 물품 자동 채우기
+                            <button onclick="startQRScan('buy')" class="w-full mb-4 py-2.5 bg-rose-100/70 hover:bg-rose-200/80 text-rose-800 font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all">
+                                📷 📷 QR 코드로 구입 물품 자동 채우기
                             </button>
 
-                            <form id="buy-form" onsubmit="addTransaction(event, 'buy')" class="space-y-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-100 mb-4">
-                                <input type="text" id="buy-name" placeholder="물건 이름 (예: 학용품 세트)" required class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-rose-400">
+                            <form id="buy-form" onsubmit="addTransaction(event, 'buy')" class="space-y-3 bg-slate-50/80 p-4 rounded-2xl border border-slate-100 mb-4">
+                                <input type="text" id="buy-name" placeholder="물건 이름 (예: 학용품 세트)" required class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-rose-400">
                                 <div class="grid grid-cols-2 gap-2">
-                                    <input type="number" id="buy-qty" min="1" placeholder="수량" required oninput="calcTotal('buy')" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-rose-400">
-                                    <input type="number" id="buy-price" min="0" placeholder="단가(원/개)" required oninput="calcTotal('buy')" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-rose-400">
+                                    <input type="number" id="buy-qty" min="1" placeholder="수량" required oninput="calcTotal('buy')" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-rose-400">
+                                    <input type="number" id="buy-price" min="0" placeholder="단가(원/개)" required oninput="calcTotal('buy')" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-rose-400">
                                 </div>
                                 <div class="flex justify-between items-center text-xs px-1 text-slate-500 font-medium">
                                     <span>입력 중 총 금액:</span>
                                     <span id="buy-total-preview" class="font-bold text-rose-600">0원</span>
                                 </div>
-                                <button type="submit" class="w-full py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl text-xs shadow-md shadow-rose-200 transition-all">
+                                <button type="submit" class="w-full py-3 bg-rose-500 hover:bg-rose-600 text-white font-extrabold rounded-xl text-xs shadow-md shadow-rose-200 transition-all">
                                     + 구입 내역 추가하기
                                 </button>
                             </form>
@@ -251,29 +255,36 @@
                 </div>
 
                 <!-- Real-time Live Summary Footer Card -->
-                <div class="bg-slate-900 text-white p-5 rounded-3xl shadow-xl flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-2xl bg-amber-400/20 text-amber-400 flex items-center justify-center text-xl">
+                <div class="bg-[#0e1627] text-white p-4 sm:p-5 rounded-3xl shadow-xl flex flex-col md:flex-row justify-between items-center gap-4 border border-slate-800">
+                    <div class="flex items-center gap-3 w-full md:w-auto">
+                        <div class="w-11 h-11 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg shrink-0 border border-amber-500/30">
                             <i class="fa-solid fa-wallet"></i>
                         </div>
                         <div>
-                            <span class="text-xs text-slate-400 font-medium">실시간 정산 요약</span>
-                            <h4 class="text-base font-bold text-white">나의 시장 자금 상태</h4>
+                            <span class="text-[11px] text-slate-400 font-medium block">실시간 정산 요약</span>
+                            <h4 class="text-sm sm:text-base font-extrabold text-white">나의 시장 자금 상태</h4>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-3 gap-2 sm:gap-6 w-full sm:w-auto text-center border-t sm:border-t-0 sm:border-l border-slate-800 pt-3 sm:pt-0 sm:pl-6">
-                        <div>
-                            <span class="text-[11px] text-emerald-400 block font-extrabold">판매금액 합계</span>
-                            <span id="summary-income" class="text-sm sm:text-base font-black text-emerald-300">0원</span>
+                    <div class="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+                        <!-- Student Greeting Badge in Summary -->
+                        <div class="bg-slate-800/80 border border-slate-700/60 px-4 py-2 rounded-full text-xs font-bold text-slate-200 text-center w-full sm:w-auto">
+                            <span id="summary-greeting-name">김휘봉</span> 학생, 반갑습니다! 👋
                         </div>
-                        <div>
-                            <span class="text-[11px] text-rose-400 block font-extrabold">구매금액 합계</span>
-                            <span id="summary-expense" class="text-sm sm:text-base font-black text-rose-300">0원</span>
-                        </div>
-                        <div>
-                            <span class="text-[11px] text-amber-400 block font-extrabold">현재 남은 잔액</span>
-                            <span id="summary-balance" class="text-sm sm:text-base font-black text-amber-300">32원</span>
+
+                        <div class="grid grid-cols-3 gap-3 sm:gap-6 w-full sm:w-auto text-center border-t md:border-t-0 md:border-l border-slate-800 pt-3 md:pt-0 md:pl-6">
+                            <div>
+                                <span class="text-[11px] text-emerald-400 block font-extrabold mb-0.5">판매금액 합계</span>
+                                <span id="summary-income" class="text-sm sm:text-base font-black text-emerald-400">0원</span>
+                            </div>
+                            <div>
+                                <span class="text-[11px] text-rose-400 block font-extrabold mb-0.5">구매금액 합계</span>
+                                <span id="summary-expense" class="text-sm sm:text-base font-black text-rose-400">0원</span>
+                            </div>
+                            <div>
+                                <span class="text-[11px] text-amber-400 block font-extrabold mb-0.5">현재 남은 잔액</span>
+                                <span id="summary-balance" class="text-sm sm:text-base font-black text-amber-400">32원</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -657,26 +668,14 @@
             
             // Format: "Name,Price"
             const qrData = `${name},${price}`;
-            
-            // Try standard QRCode library if available, otherwise fallback to highly reliable Google/QRServer Image API
-            try {
-                if (typeof QRCode !== 'undefined') {
-                    new QRCode(qrBox, {
-                        text: qrData,
-                        width: 128,
-                        height: 128
-                    });
-                } else {
-                    const encodedData = encodeURIComponent(qrData);
-                    qrBox.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=128x128&data=${encodedData}" alt="QR Code" class="w-32 h-32">`;
-                }
-            } catch (e) {
-                const encodedData = encodeURIComponent(qrData);
-                qrBox.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=128x128&data=${encodedData}" alt="QR Code" class="w-32 h-32">`;
-            }
+            new QRCode(qrBox, {
+                text: qrData,
+                width: 128,
+                height: 128
+            });
 
             document.getElementById('qr-label-output').classList.remove('hidden');
-            showToast("QR 코드 라벨이 성공적으로 생성되었습니다!");
+            showToast("QR 코드 라벨이 생성되었습니다!");
         }
 
         // Render Avatar Options
@@ -815,10 +814,13 @@
             document.getElementById('user-avatar-badge').innerText = selectedAvatar;
             document.getElementById('user-name-badge').innerText = name;
 
-            // Welcome Card Update
+            // Welcome Card & Summary Badge Update
             document.getElementById('display-avatar').innerText = selectedAvatar;
             document.getElementById('display-name').innerText = `${name} 학생`;
             document.getElementById('display-class').innerText = `${grade}학년 ${classNum}반 ${studentNum}번`;
+            if (document.getElementById('summary-greeting-name')) {
+                document.getElementById('summary-greeting-name').innerText = name;
+            }
 
             loadStudentData();
             showToast(`${name} 학생, 반갑습니다! 👋`);
