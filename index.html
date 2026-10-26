@@ -3,626 +3,1215 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>휘봉 알뜰살뜰 가계부</title>
+    <title>휘봉초 알뜰살뜰시장 기록지</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome 6 아이콘 CDN -->
+    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- QR 스캐너 라이브러리 (html5-qrcode) -->
+    <!-- Chart.js for Teacher Dashboard -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- html5-qrcode for Camera QR Scanning -->
     <script src="https://unpkg.com/html5-qrcode"></script>
-    <!-- QR 생성 라이브러리 (qrcode.js) -->
+    <!-- qrcodejs for Generating QR Codes -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <!-- Pretendard 폰트 CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
     <style>
-        body { 
-            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; 
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        * { font-family: 'Pretendard', sans-serif; }
+        .gradient-bg {
+            background: linear-gradient(135deg, #A8EDEA 0%, #FED6E3 100%);
         }
-        /* 모달 오버레이 스타일 */
-        .modal-overlay { 
-            display: none; 
-            position: fixed; 
-            inset: 0; 
-            background: rgba(15, 23, 42, 0.65); 
-            backdrop-filter: blur(4px);
-            z-index: 1000; 
-            align-items: center; 
-            justify-content: center; 
-            opacity: 0;
-            transition: opacity 0.2s ease-in-out;
+        .card-shadow {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
         }
-        .modal-overlay.active { 
-            display: flex; 
-            opacity: 1;
-        }
-        /* 스크롤바 디자인 */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
-            border-radius: 9999px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 9999px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
+        @media print {
+            body * { visibility: hidden; }
+            #qr-generator-modal, #qr-generator-modal * { visibility: visible; }
+            #qr-generator-modal { position: absolute; left: 0; top: 0; width: 100%; height: auto; background: white; }
+            .no-print { display: none !important; }
         }
     </style>
 </head>
-<body class="bg-amber-50/50 min-h-screen text-slate-800 pb-12 antialiased selection:bg-amber-200">
+<body class="bg-slate-50 min-h-screen text-slate-800 flex flex-col justify-between">
 
-    <!-- ================= 상단 헤더 ================= -->
-    <header class="bg-amber-400 text-amber-950 p-4 shadow-sm border-b border-amber-300/80 sticky top-0 z-30">
-        <div class="max-w-md mx-auto flex justify-between items-center">
-            <div>
-                <h1 class="font-extrabold text-lg flex items-center gap-2 tracking-tight">
-                    <span class="text-xl">🛒</span> 휘봉 알뜰살뜰 가계부
-                </h1>
-                <p id="userInfoDisplay" class="text-xs text-amber-900 font-semibold mt-0.5">로그인이 필요합니다</p>
+    <!-- App Header -->
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-100 shadow-sm">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <!-- Navigation Buttons (Home & Back) for Student View -->
+                <div id="student-nav-buttons" class="hidden flex items-center gap-1.5">
+                    <button onclick="goHome()" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm flex items-center justify-center transition-all" title="로그인 처음 화면으로 이동">
+                        <i class="fa-solid fa-house"></i>
+                    </button>
+                    <button onclick="goBack()" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm flex items-center justify-center transition-all" title="이전 화면으로 이동">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                </div>
+                <div class="w-10 h-10 rounded-2xl bg-amber-400 flex items-center justify-center text-white text-xl font-bold shadow-md shadow-amber-200 shrink-0">
+                    🛍️
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg md:text-xl text-slate-800 tracking-tight">휘봉초 알뜰살뜰시장</h1>
+                    <p class="text-xs text-slate-400 font-medium hidden sm:block">우리들의 슬기로운 경제 생활</p>
+                </div>
             </div>
-            <div class="flex gap-2">
-                <button onclick="openModal('qrModal')" class="bg-white/90 hover:bg-white active:scale-95 text-amber-950 border border-amber-300 px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
-                    <i class="fa-solid fa-qrcode text-amber-600"></i> QR 생성
+            <div class="flex items-center gap-2">
+                <!-- QR Generator Button (Always Active) -->
+                <button onclick="openQRGeneratorModal()" class="text-xs px-3 py-2 bg-amber-50 text-amber-700 border border-amber-200 font-bold rounded-xl hover:bg-amber-100 transition-all flex items-center gap-1 shadow-sm" title="물품 가격표 QR 만들기">
+                    <i class="fa-solid fa-qrcode"></i> QR 생성기
                 </button>
-                <button onclick="openModal('teacherAuthModal')" class="bg-amber-800 hover:bg-amber-900 active:scale-95 text-white px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
-                    <i class="fa-solid fa-user-tie text-amber-300"></i> 선생님
+                <div id="header-user-info" class="hidden flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full text-xs font-semibold text-slate-600">
+                    <span id="user-avatar-badge" class="text-base"></span>
+                    <span id="user-name-badge"></span>
+                    <button onclick="logout()" class="ml-1 text-slate-400 hover:text-rose-500 transition-colors" title="로그아웃">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+                <!-- Teacher Mode Button (Always Active) -->
+                <button id="teacher-btn" onclick="openTeacherLoginModal()" class="text-xs px-3 py-2 bg-indigo-50 text-indigo-600 border border-indigo-200 font-bold rounded-xl hover:bg-indigo-100 transition-all flex items-center gap-1 shadow-sm">
+                    <i class="fa-solid fa-user-shield"></i> 선생님 모드
                 </button>
             </div>
         </div>
     </header>
 
-    <!-- ================= 메인 컨텐츠 영역 ================= -->
-    <main class="max-w-md mx-auto p-4 space-y-4">
+    <main class="max-w-4xl mx-auto px-4 py-6 w-full flex-grow">
 
-        <!-- 1. 학생 로그인 카드 (캐릭터 선택 포함) -->
-        <div id="loginCard" class="bg-white p-6 rounded-3xl shadow-sm border border-amber-100 space-y-5">
-            <div class="text-center space-y-1">
-                <div class="inline-block p-3 bg-amber-100/80 rounded-2xl mb-1">
-                    <span class="text-3xl" id="selectedAvatarPreview">🐶</span>
-                </div>
-                <h2 class="font-extrabold text-base text-slate-800">학생 정보 & 캐릭터 선택</h2>
-                <p class="text-xs text-slate-400 font-medium">나만의 아바타를 고르고 신나는 시장 체험을 시작하세요!</p>
+        <!-- STEP 1: Student Login -->
+        <section id="login-section" class="max-w-md mx-auto my-6 bg-white p-6 md:p-8 rounded-3xl card-shadow border border-slate-100">
+            <div class="text-center mb-6">
+                <span class="inline-block px-3 py-1 bg-amber-100 text-amber-700 text-xs font-extrabold rounded-full mb-2">반가워요! 👋</span>
+                <h2 class="text-2xl font-bold text-slate-800">시장 기록지 시작하기</h2>
+                <p class="text-xs text-slate-500 mt-1">학년, 반, 번호와 이름을 적고 시작해볼까요?</p>
             </div>
 
-            <!-- 아바타 캐릭터 선택창 -->
-            <div>
-                <label class="text-[11px] font-bold text-slate-500 mb-1.5 block">아바타 캐릭터 선택</label>
-                <div class="grid grid-cols-6 gap-2" id="avatarSelector">
-                    <button type="button" onclick="selectAvatar('🐶')" class="avatar-btn p-2 rounded-2xl border-2 border-amber-400 bg-amber-50 text-2xl transition text-center">🐶</button>
-                    <button type="button" onclick="selectAvatar('🐱')" class="avatar-btn p-2 rounded-2xl border border-slate-200 hover:bg-slate-50 text-2xl transition text-center">🐱</button>
-                    <button type="button" onclick="selectAvatar('🐰')" class="avatar-btn p-2 rounded-2xl border border-slate-200 hover:bg-slate-50 text-2xl transition text-center">🐰</button>
-                    <button type="button" onclick="selectAvatar('🦊')" class="avatar-btn p-2 rounded-2xl border border-slate-200 hover:bg-slate-50 text-2xl transition text-center">🦊</button>
-                    <button type="button" onclick="selectAvatar('🐻')" class="avatar-btn p-2 rounded-2xl border border-slate-200 hover:bg-slate-50 text-2xl transition text-center">🐻</button>
-                    <button type="button" onclick="selectAvatar('🐼')" class="avatar-btn p-2 rounded-2xl border border-slate-200 hover:bg-slate-50 text-2xl transition text-center">🐼</button>
-                </div>
-            </div>
-
-            <!-- 학년/반/번호/이름 입력 -->
-            <div class="grid grid-cols-3 gap-2">
-                <div>
-                    <label class="text-[11px] font-bold text-slate-500 mb-1 block">학년</label>
-                    <select id="userGrade" class="w-full p-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 font-bold focus:bg-white focus:border-amber-400 focus:outline-none transition">
-                        <option value="5">5학년</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="text-[11px] font-bold text-slate-500 mb-1 block">반</label>
-                    <select id="userClass" class="w-full p-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 font-bold focus:bg-white focus:border-amber-400 focus:outline-none transition">
-                        <option value="1">1반</option>
-                        <option value="2">2반</option>
-                        <option value="3">3반</option>
-                        <option value="4">4반</option>
-                        <option value="5">5반</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="text-[11px] font-bold text-slate-500 mb-1 block">번호</label>
-                    <input type="number" id="userNumber" min="1" max="50" placeholder="번호" class="w-full p-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 font-bold focus:bg-white focus:border-amber-400 focus:outline-none transition">
-                </div>
-            </div>
-
-            <div>
-                <label class="text-[11px] font-bold text-slate-500 mb-1 block">이름</label>
-                <input type="text" id="userName" placeholder="이름을 입력해 주세요" class="w-full p-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 font-bold focus:bg-white focus:border-amber-400 focus:outline-none transition">
-            </div>
-
-            <button onclick="login()" class="w-full bg-amber-400 hover:bg-amber-500 active:scale-[0.99] text-amber-950 font-extrabold py-3.5 rounded-2xl text-xs shadow-sm transition flex items-center justify-center gap-2">
-                <span>가계부 시작하기</span> 🎉
-            </button>
-        </div>
-
-        <!-- 2. 가계부 메인 화면 (로그인 후 표시) -->
-        <div id="mainAppCard" class="hidden space-y-4">
-            
-            <!-- 소지금 & 요약 대시보드 카드 -->
-            <div class="bg-gradient-to-br from-amber-400 via-amber-400 to-amber-500 text-amber-950 p-5 rounded-3xl shadow-sm space-y-3.5 border border-amber-300/50">
-                <div class="flex justify-between items-start">
+            <form id="login-form" onsubmit="handleStudentLogin(event)" class="space-y-4">
+                <div class="grid grid-cols-3 gap-2">
                     <div>
-                        <p class="text-[11px] font-extrabold text-amber-800">현재 남은 소지금</p>
-                        <h2 id="balanceDisplay" class="text-3xl font-black tracking-tight mt-0.5">32냥</h2>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">학년</label>
+                        <select id="grade" required class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                            <option value="5" selected>5학년</option>
+                        </select>
                     </div>
-                    <span class="bg-white/60 border border-amber-300 text-amber-950 text-[11px] font-extrabold px-2.5 py-1 rounded-xl shadow-xs">
-                        기본 시드머니 32냥
-                    </span>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-2 pt-3 border-t border-amber-900/10 text-xs">
-                    <div class="bg-white/40 p-2.5 rounded-2xl border border-white/40">
-                        <span class="text-[10px] text-amber-900/80 font-bold block mb-0.5">총 벌어들인 돈 (+)</span>
-                        <p id="totalIncomeDisplay" class="font-extrabold text-indigo-900 text-sm">+0냥</p>
-                    </div>
-                    <div class="bg-white/40 p-2.5 rounded-2xl border border-white/40">
-                        <span class="text-[10px] text-amber-900/80 font-bold block mb-0.5">총 물건 산 돈 (-)</span>
-                        <p id="totalExpenseDisplay" class="font-extrabold text-rose-900 text-sm">-0냥</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 거래 입력 카드 -->
-            <div class="bg-white p-4.5 rounded-3xl shadow-sm border border-amber-100 space-y-3.5">
-                <!-- 탭 메뉴 (수입/지출) -->
-                <div class="flex bg-slate-100 p-1 rounded-2xl text-xs font-bold">
-                    <button id="tabIncome" onclick="setTab('income')" class="flex-1 py-2.5 rounded-xl bg-white shadow-sm text-indigo-600 font-extrabold transition flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-plus-circle"></i> 물건 판매 (수입)
-                    </button>
-                    <button id="tabExpense" onclick="setTab('expense')" class="flex-1 py-2.5 rounded-xl text-slate-400 hover:text-slate-600 transition flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-minus-circle"></i> 물건 구입 (지출)
-                    </button>
-                </div>
-
-                <!-- QR 스캔 카메라 오픈 버튼 (판매 모드일 때만 표시) -->
-                <div id="qrScanArea">
-                    <button onclick="startScanner()" class="w-full py-2.5 bg-indigo-50 hover:bg-indigo-100 active:scale-[0.99] border border-indigo-200/80 text-indigo-700 rounded-2xl text-xs font-extrabold flex items-center justify-center gap-2 transition">
-                        <i class="fa-solid fa-camera text-indigo-600 text-sm"></i> 📷 QR 코드로 판매 물품 자동 입력
-                    </button>
-                </div>
-
-                <!-- 입력 폼 -->
-                <div class="space-y-2.5">
                     <div>
-                        <label class="text-[11px] font-bold text-slate-500 mb-1 block">물품 이름</label>
-                        <input type="text" id="itemName" placeholder="예: 알록달록 연필 set" class="w-full p-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 font-bold focus:bg-white focus:border-amber-400 focus:outline-none transition">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">반</label>
+                        <select id="class-num" required class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                            <option value="1">1반</option>
+                            <option value="2">2반</option>
+                            <option value="3">3반</option>
+                            <option value="4">4반</option>
+                            <option value="5">5반</option>
+                        </select>
                     </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="text-[11px] font-bold text-slate-500 mb-1 block">단가 (냥)</label>
-                            <input type="number" id="itemPrice" min="1" placeholder="가격 입력" class="w-full p-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 font-bold focus:bg-white focus:border-amber-400 focus:outline-none transition">
-                        </div>
-                        <div>
-                            <label class="text-[11px] font-bold text-slate-500 mb-1 block">수량</label>
-                            <input type="number" id="itemQty" value="1" min="1" placeholder="수량" class="w-full p-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 font-bold focus:bg-white focus:border-amber-400 focus:outline-none transition">
-                        </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">번호</label>
+                        <input type="number" id="student-num" min="1" max="50" placeholder="15" required class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
                     </div>
-                    <button onclick="addRecord()" class="w-full bg-slate-900 hover:bg-black active:scale-[0.99] text-white font-extrabold py-3.5 rounded-2xl text-xs shadow-sm transition mt-1 flex items-center justify-center gap-1.5">
-                        <span>기록 등록하기</span> ✨
-                    </button>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">이름</label>
+                    <input type="text" id="student-name" placeholder="김휘봉" required class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-2">나만의 프로필 캐릭터 선택</label>
+                    <div class="grid grid-cols-6 gap-2" id="avatar-selector">
+                        <!-- Avatars populated dynamically -->
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full py-3.5 bg-amber-400 hover:bg-amber-500 text-slate-900 font-extrabold rounded-2xl shadow-lg shadow-amber-200 transition-all text-sm mt-4 flex items-center justify-center gap-2">
+                    입장하기 <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </form>
+        </section>
+
+        <!-- STEP 2: Main Menu Navigation -->
+        <section id="menu-section" class="hidden space-y-6">
+            <!-- Welcome Banner -->
+            <div class="gradient-bg p-6 rounded-3xl shadow-sm text-slate-800 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-4">
+                    <div id="display-avatar" class="text-4xl bg-white/60 p-3 rounded-2xl shadow-inner">🐶</div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 id="display-name" class="text-xl font-bold">김휘봉 학생</h2>
+                            <span id="display-class" class="text-xs bg-white/80 px-2.5 py-1 rounded-full font-bold text-slate-600">6학년 1반 15번</span>
+                        </div>
+                        <p class="text-xs text-slate-600 mt-1">오늘의 알뜰시장 기록을 꼼꼼하게 작성해봐요!</p>
+                    </div>
+                </div>
+                <div class="bg-white/80 backdrop-blur-sm px-4 py-2.5 rounded-2xl text-center w-full md:w-auto">
+                    <span class="text-xs text-slate-500 font-medium block">기초 준비금 (시드머니)</span>
+                    <span class="text-lg font-black text-amber-600">32 개 (통일)</span>
                 </div>
             </div>
 
-            <!-- 거래 내역 목록 카드 -->
-            <div class="bg-white p-4.5 rounded-3xl shadow-sm border border-amber-100 space-y-3">
-                <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
-                    <h3 class="font-extrabold text-xs text-slate-700 flex items-center gap-1.5">
-                        <i class="fa-solid fa-receipt text-amber-500"></i> 나의 거래 기록
-                    </h3>
-                    <button onclick="clearMyRecords()" class="text-[10px] text-slate-400 hover:text-rose-500 font-bold transition">
-                        내 기록 초기화
-                    </button>
-                </div>
-                <div id="recordList" class="space-y-2 max-h-64 overflow-y-auto text-xs pr-1">
-                    <p class="text-center text-slate-400 py-8 font-medium">아직 기록된 거래가 없어요!</p>
-                </div>
-            </div>
-        </div>
-
-    </main>
-
-    <!-- ================= [모달 1] QR 코드 생성기 ================= -->
-    <div id="qrModal" class="modal-overlay">
-        <div class="bg-white p-5 rounded-3xl max-w-xs w-full m-4 shadow-xl space-y-4 border border-amber-100">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
-                <h3 class="font-extrabold text-sm text-slate-800 flex items-center gap-1.5">
-                    <i class="fa-solid fa-qrcode text-amber-500"></i> QR 라벨 생성기
-                </h3>
-                <button onclick="closeModal('qrModal')" class="text-slate-400 hover:text-slate-600 text-sm p-1"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <p class="text-[11px] text-slate-400 font-medium leading-relaxed">
-                판매할 물품명과 가격을 입력하면 스캔용 QR 코드가 생성됩니다.
-            </p>
-            <div class="space-y-2">
-                <input type="text" id="qrName" placeholder="물품명 (예: 장난감 자동차)" class="w-full p-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 font-bold focus:bg-white focus:border-amber-400 focus:outline-none transition">
-                <input type="number" id="qrPrice" placeholder="가격 (예: 5)" class="w-full p-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 font-bold focus:bg-white focus:border-amber-400 focus:outline-none transition">
-                <button onclick="makeQrCode()" class="w-full bg-amber-400 hover:bg-amber-500 active:scale-[0.99] text-amber-950 font-extrabold py-2.5 rounded-xl text-xs shadow-sm transition">
-                    QR 코드 만들기 🚀
+            <!-- Tab Buttons -->
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="switchTab('ledger')" id="tab-ledger-btn" class="p-4 rounded-2xl border-2 border-amber-400 bg-amber-50 text-amber-900 font-extrabold flex items-center justify-center gap-2 transition-all shadow-sm">
+                    <i class="fa-solid fa-calculator text-lg"></i> 1. 가계부 적기
+                </button>
+                <button onclick="switchTab('review')" id="tab-review-btn" class="p-4 rounded-2xl border-2 border-transparent bg-white hover:bg-slate-50 text-slate-600 font-bold flex items-center justify-center gap-2 transition-all shadow-sm">
+                    <i class="fa-solid fa-pen-to-square text-lg"></i> 2. 소감문 쓰기
                 </button>
             </div>
-            <div id="qrBox" class="flex flex-col items-center justify-center p-4 border border-slate-100 rounded-2xl bg-slate-50/80 min-h-[170px]">
-                <p class="text-xs text-slate-400 font-medium">물품명과 가격을 입력해 주세요</p>
-            </div>
-        </div>
-    </div>
 
-    <!-- ================= [모달 2] 선생님 인증 ================= -->
-    <div id="teacherAuthModal" class="modal-overlay">
-        <div class="bg-white p-5 rounded-3xl max-w-xs w-full m-4 shadow-xl space-y-4 border border-amber-100">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
-                <h3 class="font-extrabold text-sm text-slate-800 flex items-center gap-1.5">
-                    <i class="fa-solid fa-lock text-amber-500"></i> 선생님 인증
-                </h3>
-                <button onclick="closeModal('teacherAuthModal')" class="text-slate-400 hover:text-slate-600 text-sm p-1"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="space-y-3">
-                <p class="text-xs text-slate-500 font-medium">선생님 전용 비밀번호를 입력해 주세요.</p>
-                <input type="password" id="teacherPass" placeholder="비밀번호 (기본: 1234)" onkeypress="if(event.key==='Enter') verifyTeacher()" class="w-full p-2.5 border border-slate-200 rounded-xl text-xs bg-slate-50 font-bold focus:bg-white focus:border-amber-400 focus:outline-none transition">
-                <button onclick="verifyTeacher()" class="w-full bg-amber-800 hover:bg-amber-900 active:scale-[0.99] text-white font-extrabold py-2.5 rounded-xl text-xs shadow-sm transition">
-                    인증하고 대시보드 열기
-                </button>
-            </div>
-        </div>
-    </div>
+            <!-- TAB 1: LEDGER (가계부 적기) -->
+            <div id="tab-ledger" class="space-y-6">
+                <!-- Sales & Purchases Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Income Section (판매 물건) -->
+                    <div class="bg-white p-5 rounded-3xl card-shadow border border-emerald-100 flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="font-extrabold text-emerald-700 flex items-center gap-2 text-base">
+                                    <span class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs"><i class="fa-solid fa-arrow-down-left"></i></span>
+                                    판매 물건 (수입)
+                                </h3>
+                                <span class="text-xs bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-lg font-bold">수입 목록</span>
+                            </div>
 
-    <!-- ================= [모달 3] 선생님 대시보드 ================= -->
-    <div id="teacherDashboardModal" class="modal-overlay">
-        <div class="bg-white p-5 rounded-3xl max-w-sm w-full m-4 shadow-xl space-y-4 border border-amber-100">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
-                <h3 class="font-extrabold text-sm text-slate-800 flex items-center gap-1.5">
-                    <i class="fa-solid fa-chart-line text-amber-500"></i> 학급별 데이터 현황
-                </h3>
-                <button onclick="closeModal('teacherDashboardModal')" class="text-slate-400 hover:text-slate-600 text-sm p-1"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="space-y-3">
-                <div class="flex justify-between items-center">
-                    <label class="text-xs font-bold text-slate-600">학급 선택 보기:</label>
-                    <select id="classFilter" onchange="loadTeacherData()" class="p-1.5 border border-slate-200 rounded-xl text-xs bg-slate-50 font-bold focus:outline-none">
-                        <option value="all">전체 학급 보기</option>
-                        <option value="1">1반</option><option value="2">2반</option>
-                        <option value="3">3반</option><option value="4">4반</option><option value="5">5반</option>
-                    </select>
-                </div>
+                            <!-- Big Selling Total Box -->
+                            <div class="bg-emerald-50/80 border border-emerald-200 p-3.5 rounded-2xl mb-4 text-center">
+                                <span class="text-xs text-emerald-700 font-extrabold block mb-0.5">💰 판매금액 합계</span>
+                                <span id="section-sell-total" class="text-2xl font-black text-emerald-600">0원</span>
+                            </div>
 
-                <!-- 실시간 학급 모니터링 리스트 -->
-                <div id="teacherDataView" class="max-h-56 overflow-y-auto border border-slate-100 p-2 rounded-2xl text-xs bg-slate-50 space-y-1.5 pr-1">
-                    <!-- JS 데이터동적바인딩 -->
-                </div>
+                            <!-- QR Scan Trigger Button for Sell -->
+                            <button onclick="startQRScan('sell')" class="w-full mb-3 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all">
+                                <i class="fa-solid fa-camera text-sm"></i> 📷 QR 코드로 판매 물품 자동 채우기
+                            </button>
 
-                <div class="pt-1 space-y-1.5">
-                    <button onclick="downloadCSV()" class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-extrabold py-2.5 rounded-2xl text-xs shadow-sm flex items-center justify-center gap-1.5 transition">
-                        <i class="fa-solid fa-file-excel text-sm"></i> CSV 엑셀 다운로드
-                    </button>
-                    <button onclick="resetAllData()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-600 font-extrabold py-2 rounded-xl text-[11px] transition">
-                        ⚠️ 전체 시장 데이터 초기화
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+                            <form id="sell-form" onsubmit="addTransaction(event, 'sell')" class="space-y-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-100 mb-4">
+                                <input type="text" id="sell-name" placeholder="물건 이름 (예: 공룡 인형)" required class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <input type="number" id="sell-qty" min="1" placeholder="수량" required oninput="calcTotal('sell')" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                                    <input type="number" id="sell-price" min="0" placeholder="단가(원/개)" required oninput="calcTotal('sell')" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                                </div>
+                                <div class="flex justify-between items-center text-xs px-1 text-slate-500 font-medium">
+                                    <span>입력 중 총 금액:</span>
+                                    <span id="sell-total-preview" class="font-bold text-emerald-600">0원</span>
+                                </div>
+                                <input type="text" id="sell-memo" placeholder="비고/메모 (예: 친구에게 500원 할인!)" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                                <button type="submit" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl text-xs shadow-md shadow-emerald-200 transition-all">
+                                    + 판매 내역 추가하기
+                                </button>
+                            </form>
 
-    <!-- ================= [모달 4] QR 코드 스캐너 카메라 ================= -->
-    <div id="scannerModal" class="modal-overlay">
-        <div class="bg-white p-4 rounded-3xl max-w-xs w-full m-4 shadow-xl space-y-3 border border-amber-100">
-            <div class="flex justify-between items-center">
-                <h3 class="font-extrabold text-xs text-slate-800 flex items-center gap-1">
-                    <i class="fa-solid fa-camera text-indigo-600"></i> QR 코드를 카메라에 대어주세요
-                </h3>
-                <button onclick="stopScanner()" class="text-slate-400 hover:text-slate-600 text-sm p-1"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div id="reader" class="w-full rounded-2xl overflow-hidden bg-black border border-slate-200"></div>
-            <p class="text-[10px] text-center text-slate-400 font-medium">
-                QR 코드가 인식되면 물품명과 가격이 자동으로 채워집니다.
-            </p>
-        </div>
-    </div>
-
-    <!-- ================= 자바스크립트 스크립트 ================= -->
-    <script>
-        // 전역 상태 관리
-        let selectedAvatar = '🐶';
-        let user = null;
-        let currentTab = 'income'; // 'income' 또는 'expense'
-        let allRecords = JSON.parse(localStorage.getItem('hwibong_market_records_v3') || '[]');
-        let html5QrCodeScanner = null;
-
-        // 아바타 선택 처리
-        function selectAvatar(avatar) {
-            selectedAvatar = avatar;
-            document.getElementById('selectedAvatarPreview').innerText = avatar;
-
-            const btns = document.querySelectorAll('.avatar-btn');
-            btns.forEach(btn => {
-                if (btn.innerText === avatar) {
-                    btn.className = "avatar-btn p-2 rounded-2xl border-2 border-amber-400 bg-amber-50 text-2xl transition text-center";
-                } else {
-                    btn.className = "avatar-btn p-2 rounded-2xl border border-slate-200 hover:bg-slate-50 text-2xl transition text-center";
-                }
-            });
-        }
-
-        // 모달 상태 제어
-        function openModal(id) {
-            const modal = document.getElementById(id);
-            if (modal) modal.classList.add('active');
-        }
-
-        function closeModal(id) {
-            const modal = document.getElementById(id);
-            if (modal) modal.classList.remove('active');
-            if (id === 'scannerModal') stopScanner();
-        }
-
-        // 로그인
-        function login() {
-            const grade = document.getElementById('userGrade').value;
-            const cls = document.getElementById('userClass').value;
-            const num = document.getElementById('userNumber').value;
-            const name = document.getElementById('userName').value.trim();
-
-            if (!num || !name) {
-                alert('번호와 이름을 모두 입력해 주세요!');
-                return;
-            }
-
-            user = { avatar: selectedAvatar, grade, class: cls, number: num, name };
-            document.getElementById('userInfoDisplay').innerText = `${selectedAvatar} ${grade}학년 ${cls}반 ${num}번 ${name}`;
-            document.getElementById('loginCard').classList.add('hidden');
-            document.getElementById('mainAppCard').classList.remove('hidden');
-            renderUI();
-        }
-
-        // 탭 변경
-        function setTab(tab) {
-            currentTab = tab;
-            const tIncome = document.getElementById('tabIncome');
-            const tExpense = document.getElementById('tabExpense');
-            const qrArea = document.getElementById('qrScanArea');
-
-            if (tab === 'income') {
-                tIncome.className = "flex-1 py-2.5 rounded-xl bg-white shadow-sm text-indigo-600 font-extrabold transition flex items-center justify-center gap-1.5";
-                tExpense.className = "flex-1 py-2.5 rounded-xl text-slate-400 hover:text-slate-600 font-bold transition flex items-center justify-center gap-1.5";
-                qrArea.classList.remove('hidden');
-            } else {
-                tExpense.className = "flex-1 py-2.5 rounded-xl bg-white shadow-sm text-rose-600 font-extrabold transition flex items-center justify-center gap-1.5";
-                tIncome.className = "flex-1 py-2.5 rounded-xl text-slate-400 hover:text-slate-600 font-bold transition flex items-center justify-center gap-1.5";
-                qrArea.classList.add('hidden');
-            }
-        }
-
-        // 거래 내역 기록
-        function addRecord() {
-            if (!user) return;
-            const name = document.getElementById('itemName').value.trim();
-            const price = parseInt(document.getElementById('itemPrice').value);
-            const qty = parseInt(document.getElementById('itemQty').value) || 1;
-
-            if (!name || isNaN(price) || price <= 0) {
-                alert('올바른 물품 이름과 가격(냥)을 입력해 주세요!');
-                return;
-            }
-
-            const total = price * qty;
-            const newRecord = {
-                id: Date.now(),
-                user: user,
-                type: currentTab,
-                name: name,
-                price: price,
-                qty: qty,
-                total: total,
-                time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
-            };
-
-            allRecords.push(newRecord);
-            localStorage.setItem('hwibong_market_records_v3', JSON.stringify(allRecords));
-
-            // 입력 필드 초기화
-            document.getElementById('itemName').value = '';
-            document.getElementById('itemPrice').value = '';
-            document.getElementById('itemQty').value = '1';
-
-            renderUI();
-        }
-
-        // UI 메인 렌더링
-        function renderUI() {
-            if (!user) return;
-
-            const myRecords = allRecords.filter(r => 
-                r.user.grade === user.grade &&
-                r.user.class === user.class &&
-                r.user.number === user.number &&
-                r.user.name === user.name
-            );
-
-            let incomeSum = 0;
-            let expenseSum = 0;
-
-            const listEl = document.getElementById('recordList');
-            listEl.innerHTML = '';
-
-            if (myRecords.length === 0) {
-                listEl.innerHTML = '<p class="text-center text-slate-400 py-8 font-medium">아직 기록된 거래가 없어요!</p>';
-            } else {
-                myRecords.slice().reverse().forEach(r => {
-                    if (r.type === 'income') incomeSum += r.total;
-                    else expenseSum += r.total;
-
-                    const card = document.createElement('div');
-                    card.className = `p-3 rounded-2xl border flex justify-between items-center ${r.type === 'income' ? 'bg-indigo-50/50 border-indigo-100' : 'bg-rose-50/50 border-rose-100'}`;
-                    card.innerHTML = `
-                        <div class="flex items-center gap-2.5">
-                            <span class="text-xl p-1 bg-white rounded-xl shadow-2xs">${r.user.avatar || '🐶'}</span>
-                            <div class="space-y-0.5">
-                                <span class="font-extrabold ${r.type === 'income' ? 'text-indigo-800' : 'text-rose-800'}">
-                                    [${r.type === 'income' ? '판매' : '구입'}] ${r.name}
-                                </span>
-                                <p class="text-[10px] text-slate-400 font-bold">
-                                    ${r.price}냥 × ${r.qty}개 (${r.time})
-                                </p>
+                            <!-- Sell List -->
+                            <div id="sell-list" class="space-y-2 max-h-56 overflow-y-auto pr-1">
+                                <!-- Dynamic Items -->
                             </div>
                         </div>
-                        <span class="font-black text-xs ${r.type === 'income' ? 'text-indigo-600' : 'text-rose-600'}">
-                            ${r.type === 'income' ? '+' : '-'}${r.total}냥
-                        </span>
-                    `;
-                    listEl.appendChild(card);
+                    </div>
+
+                    <!-- Expense Section (구입 물건) -->
+                    <div class="bg-white p-5 rounded-3xl card-shadow border border-rose-100 flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="font-extrabold text-rose-700 flex items-center gap-2 text-base">
+                                    <span class="w-7 h-7 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center text-xs"><i class="fa-solid fa-arrow-up-right"></i></span>
+                                    구입 물건 (지출)
+                                </h3>
+                                <span class="text-xs bg-rose-50 text-rose-600 px-2.5 py-1 rounded-lg font-bold">지출 목록</span>
+                            </div>
+
+                            <!-- Big Buying Total Box -->
+                            <div class="bg-rose-50/80 border border-rose-200 p-3.5 rounded-2xl mb-4 text-center">
+                                <span class="text-xs text-rose-700 font-extrabold block mb-0.5">🛒 구매금액 합계</span>
+                                <span id="section-buy-total" class="text-2xl font-black text-rose-600">0원</span>
+                            </div>
+
+                            <!-- QR Scan Trigger Button for Buy -->
+                            <button onclick="startQRScan('buy')" class="w-full mb-3 py-2 bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all">
+                                <i class="fa-solid fa-camera text-sm"></i> 📷 QR 코드로 구입 물품 자동 채우기
+                            </button>
+
+                            <form id="buy-form" onsubmit="addTransaction(event, 'buy')" class="space-y-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-100 mb-4">
+                                <input type="text" id="buy-name" placeholder="물건 이름 (예: 학용품 세트)" required class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-rose-400">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <input type="number" id="buy-qty" min="1" placeholder="수량" required oninput="calcTotal('buy')" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-rose-400">
+                                    <input type="number" id="buy-price" min="0" placeholder="단가(원/개)" required oninput="calcTotal('buy')" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-rose-400">
+                                </div>
+                                <div class="flex justify-between items-center text-xs px-1 text-slate-500 font-medium">
+                                    <span>입력 중 총 금액:</span>
+                                    <span id="buy-total-preview" class="font-bold text-rose-600">0원</span>
+                                </div>
+                                <button type="submit" class="w-full py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl text-xs shadow-md shadow-rose-200 transition-all">
+                                    + 구입 내역 추가하기
+                                </button>
+                            </form>
+
+                            <!-- Buy List -->
+                            <div id="buy-list" class="space-y-2 max-h-56 overflow-y-auto pr-1">
+                                <!-- Dynamic Items -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Real-time Live Summary Footer Card -->
+                <div class="bg-slate-900 text-white p-5 rounded-3xl shadow-xl flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-2xl bg-amber-400/20 text-amber-400 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-wallet"></i>
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-400 font-medium">실시간 정산 요약</span>
+                            <h4 class="text-base font-bold text-white">나의 시장 자금 상태</h4>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2 sm:gap-6 w-full sm:w-auto text-center border-t sm:border-t-0 sm:border-l border-slate-800 pt-3 sm:pt-0 sm:pl-6">
+                        <div>
+                            <span class="text-[11px] text-emerald-400 block font-extrabold">판매금액 합계</span>
+                            <span id="summary-income" class="text-sm sm:text-base font-black text-emerald-300">0원</span>
+                        </div>
+                        <div>
+                            <span class="text-[11px] text-rose-400 block font-extrabold">구매금액 합계</span>
+                            <span id="summary-expense" class="text-sm sm:text-base font-black text-rose-300">0원</span>
+                        </div>
+                        <div>
+                            <span class="text-[11px] text-amber-400 block font-extrabold">현재 남은 잔액</span>
+                            <span id="summary-balance" class="text-sm sm:text-base font-black text-amber-300">32원</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: REVIEW (소감문 쓰기) -->
+            <div id="tab-review" class="hidden space-y-6">
+                <div class="bg-white p-6 rounded-3xl card-shadow border border-slate-100 space-y-6">
+                    <!-- Rating -->
+                    <div class="text-center py-2 border-b border-slate-100">
+                        <label class="block text-sm font-extrabold text-slate-700 mb-2">오늘 알뜰시장은 얼마나 즐거웠나요?</label>
+                        <div id="star-rating" class="flex justify-center gap-2 text-3xl text-slate-200 cursor-pointer">
+                            <i class="fa-solid fa-star transition-all hover:scale-110" onclick="setRating(1)"></i>
+                            <i class="fa-solid fa-star transition-all hover:scale-110" onclick="setRating(2)"></i>
+                            <i class="fa-solid fa-star transition-all hover:scale-110" onclick="setRating(3)"></i>
+                            <i class="fa-solid fa-star transition-all hover:scale-110" onclick="setRating(4)"></i>
+                            <i class="fa-solid fa-star transition-all hover:scale-110" onclick="setRating(5)"></i>
+                        </div>
+                        <p id="star-hint" class="text-xs text-amber-500 font-bold mt-2">별점을 선택해주세요!</p>
+                    </div>
+
+                    <!-- Guided Questions -->
+                    <form id="review-form" onsubmit="saveReview(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-extrabold text-slate-700 mb-1 flex items-center gap-1.5">
+                                <span class="w-5 h-5 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-[10px]">1</span>
+                                오늘 가장 마음에 드는 판매/구입 물건은 무엇인가요?
+                            </label>
+                            <input type="text" id="review-q1" placeholder="예: 친구에게 산 인형이 제일 마음에 들었어요." required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-extrabold text-slate-700 mb-1 flex items-center gap-1.5">
+                                <span class="w-5 h-5 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-[10px]">2</span>
+                                오늘 알뜰시장에서 느낀 소감이나 배운 점을 적어보세요.
+                            </label>
+                            <textarea id="review-q2" rows="2" placeholder="예: 현명하게 소비하는 방법을 배웠습니다." required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-amber-400"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-extrabold text-slate-700 mb-1 flex items-center gap-1.5">
+                                <span class="w-5 h-5 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-[10px]">3</span>
+                                다음 알뜰시장에서 더 잘하고 싶은 계획을 말해봐요.
+                            </label>
+                            <input type="text" id="review-q3" placeholder="예: 가격표를 더 예쁘게 만들고 싶어요." required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        </div>
+
+                        <!-- Photo Upload (Optional) -->
+                        <div>
+                            <label class="block text-xs font-extrabold text-slate-700 mb-1">📷 활동 사진 올리기 (선택)</label>
+                            <input type="file" id="review-photo" accept="image/*" onchange="previewImage(event)" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-amber-100 file:text-amber-800 hover:file:bg-amber-200">
+                            <div id="photo-preview-container" class="hidden mt-2">
+                                <img id="photo-preview" class="max-h-36 rounded-xl border border-slate-200 object-cover" alt="사진 미리보기">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full py-3.5 bg-amber-400 hover:bg-amber-500 text-slate-900 font-extrabold rounded-2xl shadow-lg shadow-amber-200 transition-all text-sm mt-4">
+                            소감문 작성 및 제출하기 📝
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- Teacher Login Modal -->
+        <div id="teacher-auth-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 card-shadow text-center">
+                <div class="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl mx-auto">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-base text-slate-800">선생님 인증</h3>
+                    <p class="text-xs text-slate-400 mt-1">학급 선택 후 비밀번호를 입력해주세요.</p>
+                </div>
+                <div class="space-y-3 text-left">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">담당 학급</label>
+                        <select id="teacher-login-class" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                            <option value="1">5학년 1반</option>
+                            <option value="2">5학년 2반</option>
+                            <option value="3">5학년 3반</option>
+                            <option value="4">5학년 4반</option>
+                            <option value="5">5학년 5반</option>
+                            <option value="all">5학년 전체</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">비밀번호 (초기: 1234)</label>
+                        <input type="password" id="teacher-pass" placeholder="비밀번호 입력" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-400" onkeyup="if(event.key==='Enter') verifyTeacher()">
+                    </div>
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button onclick="closeTeacherLoginModal()" class="w-1/2 py-2 bg-slate-100 font-bold text-slate-600 rounded-xl text-xs">취소</button>
+                    <button onclick="verifyTeacher()" class="w-1/2 py-2 bg-indigo-600 font-bold text-white rounded-xl text-xs shadow-md shadow-indigo-200">확인</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Student Detail Modal (Teacher View) -->
+        <div id="student-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 card-shadow max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <span id="modal-avatar" class="text-2xl">🐶</span>
+                        <div>
+                            <h3 id="modal-name" class="font-extrabold text-base text-slate-800">학생 이름</h3>
+                            <p id="modal-info" class="text-xs text-slate-400">5학년 1반 1번</p>
+                        </div>
+                    </div>
+                    <button onclick="closeStudentModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-3 text-xs">
+                    <div class="bg-amber-50 border border-amber-200 p-3 rounded-2xl">
+                        <span class="font-bold text-amber-800 block mb-1">⭐ 시장 활동 만족도</span>
+                        <span id="modal-star" class="text-amber-500 font-bold text-sm"></span>
+                    </div>
+
+                    <div class="bg-slate-50 p-3 rounded-2xl space-y-2 border border-slate-100">
+                        <div>
+                            <span class="font-bold text-slate-700 block mb-0.5">1. 마음에 든 물건:</span>
+                            <p id="modal-q1" class="text-slate-600 bg-white p-2 rounded-xl border border-slate-100">-</p>
+                        </div>
+                        <div>
+                            <span class="font-bold text-slate-700 block mb-0.5">2. 느낀 소감 및 배운 점:</span>
+                            <p id="modal-q2" class="text-slate-600 bg-white p-2 rounded-xl border border-slate-100">-</p>
+                        </div>
+                        <div>
+                            <span class="font-bold text-slate-700 block mb-0.5">3. 다음 알뜰시장 계획:</span>
+                            <p id="modal-q3" class="text-slate-600 bg-white p-2 rounded-xl border border-slate-100">-</p>
+                        </div>
+                    </div>
+
+                    <div id="modal-photo-box" class="hidden">
+                        <span class="font-bold text-slate-700 block mb-1">📷 등록한 인증 사진</span>
+                        <img id="modal-photo" src="" class="w-full rounded-2xl border border-slate-200 max-h-48 object-cover" alt="학생 활동 사진">
+                    </div>
+                </div>
+
+                <button onclick="closeStudentModal()" class="w-full py-2.5 bg-slate-800 text-white font-bold rounded-xl text-xs">
+                    닫기
+                </button>
+            </div>
+        </div>
+
+        <!-- STEP 3: Teacher Dashboard Section -->
+        <section id="teacher-section" class="hidden space-y-6">
+            <div class="bg-indigo-900 text-white p-6 rounded-3xl shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <span class="inline-block px-3 py-1 bg-indigo-800 text-indigo-200 text-xs font-extrabold rounded-full mb-2">선생님 전용 대시보드</span>
+                    <h2 id="teacher-dashboard-title" class="text-xl font-bold">휘봉초 5학년 알뜰시장 학습 모니터링</h2>
+                    <p class="text-xs text-indigo-200 mt-1">학생들의 실시간 판매/구입 기록 및 활동 소감을 확인하세요.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <select id="teacher-class-select" onchange="renderTeacherDashboard()" class="px-3 py-2 bg-indigo-800 border border-indigo-700 text-white rounded-xl text-xs font-bold focus:outline-none">
+                        <option value="1">1반 모니터링</option>
+                        <option value="2">2반 모니터링</option>
+                        <option value="3">3반 모니터링</option>
+                        <option value="4">4반 모니터링</option>
+                        <option value="5">5반 모니터링</option>
+                        <option value="all">전체 학급 모니터링</option>
+                    </select>
+                    <button onclick="exportCSV()" class="px-3 py-2 bg-amber-400 hover:bg-amber-500 text-slate-900 font-extrabold rounded-xl text-xs transition-all flex items-center gap-1 shadow-md">
+                        <i class="fa-solid fa-file-excel"></i> CSV 다운로드
+                    </button>
+                    <button onclick="closeTeacherMode()" class="px-3 py-2 bg-indigo-800 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition-all">
+                        닫기
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Overview -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-white p-4 rounded-2xl border border-slate-100 card-shadow text-center">
+                    <span class="text-xs text-slate-400 font-bold block mb-1">총 판매액 (수입)</span>
+                    <span id="teacher-total-sell" class="text-xl font-black text-emerald-600">0원</span>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-slate-100 card-shadow text-center">
+                    <span class="text-xs text-slate-400 font-bold block mb-1">총 구입액 (지출)</span>
+                    <span id="teacher-total-buy" class="text-xl font-black text-rose-600">0원</span>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-slate-100 card-shadow text-center">
+                    <span class="text-xs text-slate-400 font-bold block mb-1">소감문 제출 학생 수</span>
+                    <span id="teacher-review-ratio" class="text-xl font-black text-indigo-600">0 / 0 명</span>
+                </div>
+            </div>
+
+            <!-- Student List Table -->
+            <div class="bg-white rounded-3xl border border-slate-100 card-shadow overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold">
+                            <tr>
+                                <th class="p-3.5">학생 정보</th>
+                                <th class="p-3.5">판매 건수</th>
+                                <th class="p-3.5">총 판매액</th>
+                                <th class="p-3.5">구입 건수</th>
+                                <th class="p-3.5">총 구입액</th>
+                                <th class="p-3.5">현재 잔액</th>
+                                <th class="p-3.5">소감문</th>
+                                <th class="p-3.5 text-center">상세</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teacher-student-tbody" class="divide-y divide-slate-100">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- QR Scanner Modal -->
+        <div id="qr-scanner-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl max-w-sm w-full p-5 space-y-4 card-shadow text-center">
+                <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                    <h3 class="font-bold text-sm text-slate-800">📷 QR 코드 스캔하기</h3>
+                    <button onclick="stopQRScan()" class="text-slate-400 hover:text-slate-600">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+                <div id="reader" class="w-full overflow-hidden rounded-2xl bg-slate-100"></div>
+                <p class="text-xs text-slate-400">물건 라벨의 QR 코드를 카메라 중앙에 맞춰주세요.</p>
+                <button onclick="stopQRScan()" class="w-full py-2 bg-slate-100 text-slate-600 font-bold rounded-xl text-xs">닫기</button>
+            </div>
+        </div>
+
+        <!-- QR Generator Modal -->
+        <div id="qr-generator-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 card-shadow text-center">
+                <div class="flex justify-between items-center border-b border-slate-100 pb-2 no-print">
+                    <h3 class="font-bold text-sm text-slate-800">🏷️ 물품 QR 라벨 생성기</h3>
+                    <button onclick="closeQRGeneratorModal()" class="text-slate-400 hover:text-slate-600">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-3 no-print">
+                    <input type="text" id="gen-item-name" placeholder="물건 이름 (예: 연필 세트)" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-amber-400">
+                    <input type="number" id="gen-item-price" placeholder="판매 가격 (원)" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-amber-400">
+                    <button onclick="generateQRLabel()" class="w-full py-2.5 bg-amber-400 hover:bg-amber-500 font-extrabold text-slate-900 rounded-xl text-xs shadow-md transition-all">
+                        QR 코드 만들기
+                    </button>
+                </div>
+
+                <div id="qr-label-output" class="hidden border-2 border-dashed border-amber-300 p-4 rounded-2xl bg-amber-50/50 flex flex-col items-center gap-2">
+                    <span id="label-display-name" class="font-extrabold text-slate-800 text-sm"></span>
+                    <div id="qrcode-box" class="bg-white p-2 rounded-xl border border-slate-200"></div>
+                    <span id="label-display-price" class="font-black text-amber-600 text-base"></span>
+                    <button onclick="window.print()" class="no-print mt-2 text-xs text-slate-500 underline hover:text-slate-800">
+                        🖨️ 이 라벨 인쇄하기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Custom Notification Toast -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-2xl z-50 hidden transition-all flex items-center gap-2">
+        <span id="toast-msg">메시지</span>
+    </div>
+
+    <footer class="py-4 text-center text-xs text-slate-400 border-t border-slate-100 mt-12 bg-white">
+        휘봉초등학교 알뜰살뜰시장 활동 기록 시스템 ⓒ All Rights Reserved.
+    </footer>
+
+    <script>
+        // --- DATA & INITIALIZATION ---
+        const AVATARS = ['🐶', '🐱', '🦊', '🐻', '🐰', '🦁', '🐯', '🐸', '🦄', '🤖', '👾', '🚀'];
+        const INITIAL_SEED = 32;
+
+        let currentUser = null; // { grade, classNum, studentNum, name, avatar, id }
+        let currentRating = 0;
+        let photoDataUrl = '';
+        let html5QrCode = null;
+        let currentScanTarget = 'sell'; // 'sell' or 'buy'
+
+        // Local Storage / State Database Initialization
+        function getDatabase() {
+            const data = localStorage.getItem('hwibong_market_db');
+            return data ? JSON.parse(data) : {};
+        }
+
+        function saveDatabase(db) {
+            localStorage.setItem('hwibong_market_db', JSON.stringify(db));
+        }
+
+        window.onload = function() {
+            renderAvatarSelector();
+        };
+
+        // --- QR CODE SCANNER LOGIC ---
+        function startQRScan(targetType) {
+            currentScanTarget = targetType;
+            document.getElementById('qr-scanner-modal').classList.remove('hidden');
+
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
+
+            const config = { fps: 10, qrbox: { width: 200, height: 200 } };
+            html5QrCode.start(
+                { facingMode: "environment" },
+                config,
+                onScanSuccess,
+                onScanFailure
+            ).catch(err => {
+                showToast("카메라 권한을 허용해 주세요.");
+                stopQRScan();
+            });
+        }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            // Decoded text format: "ItemName,Price"
+            stopQRScan();
+            try {
+                const parts = decodedText.split(',');
+                if (parts.length >= 2) {
+                    const itemName = parts[0].trim();
+                    const itemPrice = Number(parts[1].trim()) || 0;
+
+                    if (currentScanTarget === 'sell') {
+                        document.getElementById('sell-name').value = itemName;
+                        document.getElementById('sell-qty').value = 1;
+                        document.getElementById('sell-price').value = itemPrice;
+                        calcTotal('sell');
+                    } else {
+                        document.getElementById('buy-name').value = itemName;
+                        document.getElementById('buy-qty').value = 1;
+                        document.getElementById('buy-price').value = itemPrice;
+                        calcTotal('buy');
+                    }
+                    showToast(`스캔 완료: ${itemName} (${itemPrice.toLocaleString()}원)`);
+                } else {
+                    showToast("올바른 알뜰시장 QR 코드가 아닙니다.");
+                }
+            } catch (e) {
+                showToast("QR 코드 인식 중 오류가 발생했습니다.");
+            }
+        }
+
+        function onScanFailure(error) {
+            // Ignore frame scan failures
+        }
+
+        function stopQRScan() {
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().then(() => {
+                    document.getElementById('qr-scanner-modal').classList.add('hidden');
+                }).catch(err => {
+                    document.getElementById('qr-scanner-modal').classList.add('hidden');
                 });
-            }
-
-            const currentBalance = 32 + incomeSum - expenseSum;
-            document.getElementById('balanceDisplay').innerText = `${currentBalance}냥`;
-            document.getElementById('totalIncomeDisplay').innerText = `+${incomeSum}냥`;
-            document.getElementById('totalExpenseDisplay').innerText = `-${expenseSum}냥`;
-        }
-
-        // 내 기록 삭제
-        function clearMyRecords() {
-            if (!user) return;
-            if (confirm('나의 거래 기록을 정말 삭제할까요?')) {
-                allRecords = allRecords.filter(r => !(
-                    r.user.grade === user.grade &&
-                    r.user.class === user.class &&
-                    r.user.number === user.number &&
-                    r.user.name === user.name
-                ));
-                localStorage.setItem('hwibong_market_records_v3', JSON.stringify(allRecords));
-                renderUI();
+            } else {
+                document.getElementById('qr-scanner-modal').classList.add('hidden');
             }
         }
 
-        // QR 라벨 생성기
-        function makeQrCode() {
-            const name = document.getElementById('qrName').value.trim();
-            const price = document.getElementById('qrPrice').value.trim();
-            const qrBox = document.getElementById('qrBox');
+        // --- QR CODE GENERATOR LOGIC ---
+        function openQRGeneratorModal() {
+            document.getElementById('qr-generator-modal').classList.remove('hidden');
+        }
+
+        function closeQRGeneratorModal() {
+            document.getElementById('qr-generator-modal').classList.add('hidden');
+            document.getElementById('qr-label-output').classList.add('hidden');
+        }
+
+        function generateQRLabel() {
+            const name = document.getElementById('gen-item-name').value.trim();
+            const price = document.getElementById('gen-item-price').value.trim();
 
             if (!name || !price) {
-                alert('물품명과 가격을 모두 입력해 주세요!');
+                showToast("물건 이름과 가격을 입력해주세요!");
                 return;
             }
 
+            document.getElementById('label-display-name').innerText = name;
+            document.getElementById('label-display-price').innerText = `${Number(price).toLocaleString()}원`;
+
+            const qrBox = document.getElementById('qrcode-box');
             qrBox.innerHTML = '';
-            new QRCode(qrBox, {
-                text: `${name},${price}`,
-                width: 120,
-                height: 120
+            
+            // Format: "Name,Price"
+            const qrData = `${name},${price}`;
+            
+            // Try standard QRCode library if available, otherwise fallback to highly reliable Google/QRServer Image API
+            try {
+                if (typeof QRCode !== 'undefined') {
+                    new QRCode(qrBox, {
+                        text: qrData,
+                        width: 128,
+                        height: 128
+                    });
+                } else {
+                    const encodedData = encodeURIComponent(qrData);
+                    qrBox.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=128x128&data=${encodedData}" alt="QR Code" class="w-32 h-32">`;
+                }
+            } catch (e) {
+                const encodedData = encodeURIComponent(qrData);
+                qrBox.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=128x128&data=${encodedData}" alt="QR Code" class="w-32 h-32">`;
+            }
+
+            document.getElementById('qr-label-output').classList.remove('hidden');
+            showToast("QR 코드 라벨이 성공적으로 생성되었습니다!");
+        }
+
+        // Render Avatar Options
+        function renderAvatarSelector() {
+            const container = document.getElementById('avatar-selector');
+            container.innerHTML = '';
+            AVATARS.forEach((av, index) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `p-2 rounded-xl text-xl border transition-all ${index === 0 ? 'bg-amber-100 border-amber-400 scale-105' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`;
+                btn.innerText = av;
+                btn.onclick = () => {
+                    document.querySelectorAll('#avatar-selector button').forEach(b => {
+                        b.className = 'p-2 rounded-xl text-xl border border-slate-200 bg-slate-50 hover:bg-slate-100';
+                    });
+                    btn.className = 'p-2 rounded-xl text-xl border-2 border-amber-400 bg-amber-100 scale-105';
+                    btn.dataset.selected = "true";
+                };
+                if (index === 0) btn.dataset.selected = "true";
+                container.appendChild(btn);
+            });
+        }
+
+        // Calculate Real-time Form Totals
+        function calcTotal(type) {
+            if (type === 'sell') {
+                const qty = Number(document.getElementById('sell-qty').value) || 0;
+                const price = Number(document.getElementById('sell-price').value) || 0;
+                document.getElementById('sell-total-preview').innerText = `${(qty * price).toLocaleString()}원`;
+            } else if (type === 'buy') {
+                const qty = Number(document.getElementById('buy-qty').value) || 0;
+                const price = Number(document.getElementById('buy-price').value) || 0;
+                document.getElementById('buy-total-preview').innerText = `${(qty * price).toLocaleString()}원`;
+            }
+        }
+
+        // Add Transaction (Sell or Buy)
+        function addTransaction(e, type) {
+            e.preventDefault();
+            if (!currentUser) return;
+
+            const db = getDatabase();
+            const studentData = db[currentUser.id];
+
+            if (type === 'sell') {
+                const name = document.getElementById('sell-name').value.trim();
+                const qty = Number(document.getElementById('sell-qty').value);
+                const price = Number(document.getElementById('sell-price').value);
+                const memo = document.getElementById('sell-memo').value.trim();
+                const total = qty * price;
+
+                studentData.sells.push({ id: Date.now(), name, qty, price, total, memo });
+                document.getElementById('sell-form').reset();
+                document.getElementById('sell-total-preview').innerText = '0원';
+                showToast("판매 내역이 추가되었습니다! 📈");
+            } else {
+                const name = document.getElementById('buy-name').value.trim();
+                const qty = Number(document.getElementById('buy-qty').value);
+                const price = Number(document.getElementById('buy-price').value);
+                const total = qty * price;
+
+                studentData.buys.push({ id: Date.now(), name, qty, price, total });
+                document.getElementById('buy-form').reset();
+                document.getElementById('buy-total-preview').innerText = '0원';
+                showToast("구입 내역이 추가되었습니다! 🛒");
+            }
+
+            saveDatabase(db);
+            loadStudentData();
+        }
+
+        // Delete Transaction
+        function deleteTransaction(type, id) {
+            if (!currentUser) return;
+            const db = getDatabase();
+            const studentData = db[currentUser.id];
+
+            if (type === 'sell') {
+                studentData.sells = studentData.sells.filter(item => item.id !== id);
+            } else {
+                studentData.buys = studentData.buys.filter(item => item.id !== id);
+            }
+
+            saveDatabase(db);
+            loadStudentData();
+            showToast("항목이 삭제되었습니다.");
+        }
+
+        // Student Login
+        function handleStudentLogin(e) {
+            e.preventDefault();
+            const grade = document.getElementById('grade').value;
+            const classNum = document.getElementById('class-num').value;
+            const studentNum = document.getElementById('student-num').value;
+            const name = document.getElementById('student-name').value.trim();
+
+            let selectedAvatar = '🐶';
+            document.querySelectorAll('#avatar-selector button').forEach(b => {
+                if (b.dataset.selected === "true") selectedAvatar = b.innerText;
             });
 
-            const tag = document.createElement('p');
-            tag.className = 'text-xs font-black text-slate-700 mt-2.5';
-            tag.innerText = `${name} (${price}냥)`;
-            qrBox.appendChild(tag);
-        }
+            const studentId = `${grade}-${classNum}-${studentNum}_${name}`;
 
-        // 선생님 검증
-        function verifyTeacher() {
-            const pass = document.getElementById('teacherPass').value;
-            if (pass === '1234') {
-                closeModal('teacherAuthModal');
-                openModal('teacherDashboardModal');
-                loadTeacherData();
+            currentUser = {
+                id: studentId,
+                grade,
+                classNum,
+                studentNum,
+                name,
+                avatar: selectedAvatar
+            };
+
+            // Init student DB if not exists
+            const db = getDatabase();
+            if (!db[studentId]) {
+                db[studentId] = {
+                    info: currentUser,
+                    sells: [],
+                    buys: [],
+                    review: null
+                };
+                saveDatabase(db);
             } else {
-                alert('비밀번호가 올바르지 않습니다.');
+                // Update avatar if changed
+                db[studentId].info.avatar = selectedAvatar;
+                saveDatabase(db);
+            }
+
+            // UI Switch
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('menu-section').classList.remove('hidden');
+
+            // Header Navigation & User Info Update
+            document.getElementById('student-nav-buttons').classList.remove('hidden');
+            document.getElementById('header-user-info').classList.remove('hidden');
+            document.getElementById('user-avatar-badge').innerText = selectedAvatar;
+            document.getElementById('user-name-badge').innerText = name;
+
+            // Welcome Card Update
+            document.getElementById('display-avatar').innerText = selectedAvatar;
+            document.getElementById('display-name').innerText = `${name} 학생`;
+            document.getElementById('display-class').innerText = `${grade}학년 ${classNum}반 ${studentNum}번`;
+
+            loadStudentData();
+            showToast(`${name} 학생, 반갑습니다! 👋`);
+        }
+
+        // Student Header Navigation Functions
+        function goHome() {
+            if (confirm("로그인 화면으로 이동하시겠습니까?")) {
+                logout();
             }
         }
 
-        // 대시보드 데이터 조회
-        function loadTeacherData() {
-            const filter = document.getElementById('classFilter').value;
-            const view = document.getElementById('teacherDataView');
-            view.innerHTML = '';
-
-            const list = allRecords.filter(r => filter === 'all' || r.user.class === filter);
-
-            if (list.length === 0) {
-                view.innerHTML = '<p class="text-center text-slate-400 py-6 font-medium">기록된 데이터가 존재하지 않습니다.</p>';
-                return;
+        function goBack() {
+            const reviewTab = document.getElementById('tab-review');
+            if (!reviewTab.classList.contains('hidden')) {
+                // If in Review tab, go back to Ledger tab
+                switchTab('ledger');
+            } else {
+                // If in Ledger tab, ask to logout/go home
+                if (confirm("처음 로그인 화면으로 돌아가시겠습니까?")) {
+                    logout();
+                }
             }
+        }
 
-            list.slice().reverse().forEach(r => {
-                const item = document.createElement('div');
-                item.className = 'p-2.5 bg-white rounded-xl border border-slate-100 flex justify-between items-center text-[11px] font-bold shadow-2xs';
-                item.innerHTML = `
-                    <span class="text-slate-700 flex items-center gap-1">
-                        <span>${r.user.avatar || '🐶'}</span>
-                        ${r.user.class}반 ${r.user.number}번 ${r.user.name}
-                    </span>
-                    <span class="${r.type === 'income' ? 'text-indigo-600' : 'text-rose-600'}">
-                        ${r.type === 'income' ? '판매' : '구입'}: ${r.name} (${r.total}냥)
-                    </span>
+        function logout() {
+            currentUser = null;
+            document.getElementById('menu-section').classList.add('hidden');
+            document.getElementById('teacher-section').classList.add('hidden');
+            document.getElementById('header-user-info').classList.add('hidden');
+            document.getElementById('student-nav-buttons').classList.add('hidden');
+            document.getElementById('login-section').classList.remove('hidden');
+            showToast("로그아웃 되었습니다.");
+        }
+
+        // Tab Switching
+        function switchTab(tab) {
+            const ledgerTab = document.getElementById('tab-ledger');
+            const reviewTab = document.getElementById('tab-review');
+            const ledgerBtn = document.getElementById('tab-ledger-btn');
+            const reviewBtn = document.getElementById('tab-review-btn');
+
+            if (tab === 'ledger') {
+                ledgerTab.classList.remove('hidden');
+                reviewTab.classList.add('hidden');
+                ledgerBtn.className = "p-4 rounded-2xl border-2 border-amber-400 bg-amber-50 text-amber-900 font-extrabold flex items-center justify-center gap-2 transition-all shadow-sm";
+                reviewBtn.className = "p-4 rounded-2xl border-2 border-transparent bg-white hover:bg-slate-50 text-slate-600 font-bold flex items-center justify-center gap-2 transition-all shadow-sm";
+            } else {
+                ledgerTab.classList.add('hidden');
+                reviewTab.classList.remove('hidden');
+                reviewBtn.className = "p-4 rounded-2xl border-2 border-amber-400 bg-amber-50 text-amber-900 font-extrabold flex items-center justify-center gap-2 transition-all shadow-sm";
+                ledgerBtn.className = "p-4 rounded-2xl border-2 border-transparent bg-white hover:bg-slate-50 text-slate-600 font-bold flex items-center justify-center gap-2 transition-all shadow-sm";
+            }
+        }
+
+        // Load and Render Student Data
+        function loadStudentData() {
+            if (!currentUser) return;
+            const db = getDatabase();
+            const studentData = db[currentUser.id];
+
+            // Render Sell List
+            const sellList = document.getElementById('sell-list');
+            sellList.innerHTML = '';
+            let totalIncome = 0;
+            studentData.sells.forEach(item => {
+                totalIncome += item.total;
+                sellList.innerHTML += `
+                    <div class="bg-emerald-50/60 border border-emerald-100 p-2.5 rounded-xl flex justify-between items-center text-xs">
+                        <div>
+                            <div class="font-bold text-slate-800">${item.name} (${item.qty}개)</div>
+                            <div class="text-[10px] text-slate-400">${item.price.toLocaleString()}원 × ${item.qty}개 = <span class="font-bold text-emerald-600">${item.total.toLocaleString()}원</span></div>
+                            ${item.memo ? `<div class="text-[10px] text-emerald-700 bg-emerald-100/50 px-1.5 py-0.5 rounded mt-0.5 inline-block">💡 ${item.memo}</div>` : ''}
+                        </div>
+                        <button onclick="deleteTransaction('sell', ${item.id})" class="text-slate-400 hover:text-rose-500 p-1">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
                 `;
-                view.appendChild(item);
             });
-        }
+            if (studentData.sells.length === 0) {
+                sellList.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">아직 등록된 판매 물건이 없어요.</p>`;
+            }
 
-        // 전체 초기화
-        function resetAllData() {
-            if (confirm('전체 학생의 시장 거래 데이터를 모두 초기화하시겠습니까?')) {
-                allRecords = [];
-                localStorage.setItem('hwibong_market_records_v3', JSON.stringify(allRecords));
-                loadTeacherData();
-                renderUI();
-                alert('전체 데이터가 초기화되었습니다.');
+            // Render Buy List
+            const buyList = document.getElementById('buy-list');
+            buyList.innerHTML = '';
+            let totalExpense = 0;
+            studentData.buys.forEach(item => {
+                totalExpense += item.total;
+                buyList.innerHTML += `
+                    <div class="bg-rose-50/60 border border-rose-100 p-2.5 rounded-xl flex justify-between items-center text-xs">
+                        <div>
+                            <div class="font-bold text-slate-800">${item.name} (${item.qty}개)</div>
+                            <div class="text-[10px] text-slate-400">${item.price.toLocaleString()}원 × ${item.qty}개 = <span class="font-bold text-rose-600">${item.total.toLocaleString()}원</span></div>
+                        </div>
+                        <button onclick="deleteTransaction('buy', ${item.id})" class="text-slate-400 hover:text-rose-500 p-1">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+            });
+            if (studentData.buys.length === 0) {
+                buyList.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">아직 등록된 구입 물건이 없어요.</p>`;
+            }
+
+            // Update Totals (Section Top Cards & Footer Summary)
+            document.getElementById('section-sell-total').innerText = `${totalIncome.toLocaleString()}원`;
+            document.getElementById('section-buy-total').innerText = `${totalExpense.toLocaleString()}원`;
+
+            const currentBalance = INITIAL_SEED + totalIncome - totalExpense;
+            document.getElementById('summary-income').innerText = `${totalIncome.toLocaleString()}원`;
+            document.getElementById('summary-expense').innerText = `${totalExpense.toLocaleString()}원`;
+            document.getElementById('summary-balance').innerText = `${currentBalance.toLocaleString()}원`;
+
+            // Load Existing Review
+            if (studentData.review) {
+                setRating(studentData.review.rating);
+                document.getElementById('review-q1').value = studentData.review.q1 || '';
+                document.getElementById('review-q2').value = studentData.review.q2 || '';
+                document.getElementById('review-q3').value = studentData.review.q3 || '';
+                if (studentData.review.photo) {
+                    photoDataUrl = studentData.review.photo;
+                    document.getElementById('photo-preview').src = photoDataUrl;
+                    document.getElementById('photo-preview-container').classList.remove('hidden');
+                }
             }
         }
 
-        // CSV 파일 내보내기 (UTF-8 BOM 지정)
-        function downloadCSV() {
-            if (allRecords.length === 0) {
-                alert('다운로드할 거래 데이터가 없습니다.');
+        // Set Star Rating
+        function setRating(rating) {
+            currentRating = rating;
+            const stars = document.querySelectorAll('#star-rating i');
+            const hints = ['', '조금 아쉬웠어요 😢', '그저 그랬어요 😐', '보통이었어요 🙂', '즐거웠어요! 😊', '최고로 신났어요! 🎉'];
+            stars.forEach((star, idx) => {
+                if (idx < rating) {
+                    star.className = "fa-solid fa-star text-amber-400 transition-all hover:scale-110";
+                } else {
+                    star.className = "fa-solid fa-star text-slate-200 transition-all hover:scale-110";
+                }
+            });
+            document.getElementById('star-hint').innerText = hints[rating];
+        }
+
+        // Image Base64 Convert
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    photoDataUrl = e.target.result;
+                    document.getElementById('photo-preview').src = photoDataUrl;
+                    document.getElementById('photo-preview-container').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Save Review
+        function saveReview(e) {
+            e.preventDefault();
+            if (!currentUser) return;
+            if (currentRating === 0) {
+                showToast("별점 만족도를 선택해 주세요!");
                 return;
             }
 
-            let csv = '\uFEFF아바타,학년,반,번호,이름,구분,물품명,단가,수량,총금액,작성시간\n';
-            allRecords.forEach(r => {
-                csv += `"${r.user.avatar || '🐶'}",${r.user.grade},${r.user.class},${r.user.number},"${r.user.name}",${r.type === 'income' ? '판매' : '구입'},"${r.name}",${r.price},${r.qty},${r.total},"${r.time}"\n`;
-            });
+            const review = {
+                rating: currentRating,
+                q1: document.getElementById('review-q1').value.trim(),
+                q2: document.getElementById('review-q2').value.trim(),
+                q3: document.getElementById('review-q3').value.trim(),
+                photo: photoDataUrl,
+                updatedAt: new Date().toLocaleTimeString()
+            };
 
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `휘봉초_알뜰시장_전체거래기록.csv`;
-            link.click();
+            const db = getDatabase();
+            db[currentUser.id].review = review;
+            saveDatabase(db);
+
+            showToast("소감문이 성공적으로 작성 및 저장되었습니다! ✨");
         }
 
-        // QR 스캐너 실행
-        function startScanner() {
-            openModal('scannerModal');
-            html5QrCodeScanner = new Html5Qrcode("reader");
-
-            html5QrCodeScanner.start(
-                { facingMode: "environment" },
-                { fps: 10, qrbox: { width: 180, height: 180 } },
-                (decodedText) => {
-                    const data = decodedText.split(',');
-                    if (data.length >= 2) {
-                        document.getElementById('itemName').value = data[0].trim();
-                        document.getElementById('itemPrice').value = data[1].trim();
-                        stopScanner();
-                    } else {
-                        alert('올바른 QR 코드 형태(물품명,가격)가 아닙니다.');
-                    }
-                },
-                () => {}
-            ).catch(() => {
-                alert('카메라 접근 권한을 확인해 주세요.');
-                stopScanner();
-            });
+        // --- TEACHER MONITORING DASHBOARD ---
+        function openTeacherLoginModal() {
+            document.getElementById('teacher-auth-modal').classList.remove('hidden');
         }
 
-        function stopScanner() {
-            if (html5QrCodeScanner) {
-                html5QrCodeScanner.stop().then(() => {
-                    html5QrCodeScanner.clear();
-                    closeModal('scannerModal');
-                }).catch(() => {
-                    closeModal('scannerModal');
-                });
+        function closeTeacherLoginModal() {
+            document.getElementById('teacher-auth-modal').classList.add('hidden');
+            document.getElementById('teacher-pass').value = '';
+        }
+
+        function verifyTeacher() {
+            const pass = document.getElementById('teacher-pass').value;
+            const selectedClass = document.getElementById('teacher-login-class').value;
+
+            // Teacher Password Verification (1234)
+            if (pass === '1234') {
+                closeTeacherLoginModal();
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('menu-section').classList.add('hidden');
+                document.getElementById('teacher-section').classList.remove('hidden');
+
+                // Set header class select box value
+                document.getElementById('teacher-class-select').value = selectedClass;
+
+                renderTeacherDashboard();
+                showToast("선생님 모드로 전환되었습니다.");
             } else {
-                closeModal('scannerModal');
+                showToast("비밀번호가 올바르지 않습니다.");
             }
+        }
+
+        function closeTeacherMode() {
+            document.getElementById('teacher-section').classList.add('hidden');
+            if (currentUser) {
+                document.getElementById('menu-section').classList.remove('hidden');
+            } else {
+                document.getElementById('login-section').classList.remove('hidden');
+            }
+        }
+
+        function renderTeacherDashboard() {
+            const db = getDatabase();
+            const selectedClass = document.getElementById('teacher-class-select').value;
+            
+            // Filter students by selected class
+            const allStudents = Object.values(db);
+            const students = selectedClass === 'all' 
+                ? allStudents 
+                : allStudents.filter(st => String(st.info.classNum) === String(selectedClass));
+
+            // Update title label
+            const titleElement = document.getElementById('teacher-dashboard-title');
+            if (selectedClass === 'all') {
+                titleElement.innerText = `휘봉초 5학년 전체 알뜰시장 학습 통합 모니터링`;
+            } else {
+                titleElement.innerText = `휘봉초 5학년 ${selectedClass}반 알뜰시장 학습 모니터링`;
+            }
+
+            let totalClassSell = 0;
+            let totalClassBuy = 0;
+            let reviewSubmittedCount = 0;
+
+            const tbody = document.getElementById('teacher-student-tbody');
+            tbody.innerHTML = '';
+
+            if (students.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-slate-400">${selectedClass === 'all' ? '아직 등록된 학생 기록 데이터가 없습니다.' : `5학년 ${selectedClass}반에 등록된 학생 기록 데이터가 없습니다.`}</td></tr>`;
+            }
+
+            students.forEach(st => {
+                const info = st.info;
+                const sellsTotal = st.sells.reduce((acc, curr) => acc + curr.total, 0);
+                const buysTotal = st.buys.reduce((acc, curr) => acc + curr.total, 0);
+                const balance = INITIAL_SEED + sellsTotal - buysTotal;
+                const isReviewSubmitted = st.review !== null;
+
+                totalClassSell += sellsTotal;
+                totalClassBuy += buysTotal;
+                if (isReviewSubmitted) reviewSubmittedCount++;
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="p-3 font-semibold text-slate-800 flex items-center gap-1.5">
+                            <span>${info.avatar}</span>
+                            <span>${info.grade}학년 ${info.classNum}반 ${info.studentNum}번 ${info.name}</span>
+                        </td>
+                        <td class="p-3 text-emerald-600 font-medium">${st.sells.length}건</td>
+                        <td class="p-3 font-bold text-slate-800">${sellsTotal.toLocaleString()}원</td>
+                        <td class="p-3 text-rose-600 font-medium">${st.buys.length}건</td>
+                        <td class="p-3 font-bold text-slate-800">${buysTotal.toLocaleString()}원</td>
+                        <td class="p-3 font-bold text-amber-600">${balance.toLocaleString()}원</td>
+                        <td class="p-3">
+                            ${isReviewSubmitted ? 
+                                `<span class="bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full text-[10px]">작성 완료</span>` : 
+                                `<span class="bg-slate-100 text-slate-400 font-medium px-2 py-0.5 rounded-full text-[10px]">미작성</span>`}
+                        </td>
+                        <td class="p-3 text-center">
+                            <button onclick="openStudentModal('${info.id}')" class="px-2.5 py-1 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-bold rounded-lg text-[10px]">
+                                상세 보기
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            // Update Summaries
+            document.getElementById('teacher-total-sell').innerText = `${totalClassSell.toLocaleString()}원`;
+            document.getElementById('teacher-total-buy').innerText = `${totalClassBuy.toLocaleString()}원`;
+            document.getElementById('teacher-review-ratio').innerText = `${reviewSubmittedCount} / ${students.length} 명`;
+        }
+
+        // Open Student Detail Modal
+        function openStudentModal(studentId) {
+            const db = getDatabase();
+            const student = db[studentId];
+            if (!student) return;
+
+            document.getElementById('modal-avatar').innerText = student.info.avatar;
+            document.getElementById('modal-name').innerText = student.info.name;
+            document.getElementById('modal-info').innerText = `${student.info.grade}학년 ${student.info.classNum}반 ${student.info.studentNum}번`;
+
+            // Review Modal
+            if (student.review) {
+                document.getElementById('modal-star').innerText = '★'.repeat(student.review.rating);
+                document.getElementById('modal-q1').innerText = student.review.q1 || '-';
+                document.getElementById('modal-q2').innerText = student.review.q2 || '-';
+                document.getElementById('modal-q3').innerText = student.review.q3 || '-';
+
+                if (student.review.photo) {
+                    document.getElementById('modal-photo').src = student.review.photo;
+                    document.getElementById('modal-photo-box').classList.remove('hidden');
+                } else {
+                    document.getElementById('modal-photo-box').classList.add('hidden');
+                }
+            } else {
+                document.getElementById('modal-star').innerText = '미작성';
+                document.getElementById('modal-q1').innerText = '-';
+                document.getElementById('modal-q2').innerText = '-';
+                document.getElementById('modal-q3').innerText = '-';
+                document.getElementById('modal-photo-box').classList.add('hidden');
+            }
+
+            document.getElementById('student-modal').classList.remove('hidden');
+        }
+
+        function closeStudentModal() {
+            document.getElementById('student-modal').classList.add('hidden');
+        }
+
+        // CSV Export Function
+        function exportCSV() {
+            const db = getDatabase();
+            const selectedClass = document.getElementById('teacher-class-select').value;
+            const allStudents = Object.values(db);
+            
+            const students = selectedClass === 'all' 
+                ? allStudents 
+                : allStudents.filter(st => String(st.info.classNum) === String(selectedClass));
+
+            if (students.length === 0) {
+                showToast("다운로드할 데이터가 없습니다.");
+                return;
+            }
+
+            let csvContent = "\uFEFF"; // UTF-8 BOM
+            csvContent += "학년,반,번호,이름,총판매액,총구입액,최종잔액,소감점수,질문1(인기물건),질문2(소감),질문3(다음계획)\n";
+
+            students.forEach(st => {
+                const info = st.info;
+                const sellsTotal = st.sells.reduce((acc, curr) => acc + curr.total, 0);
+                const buysTotal = st.buys.reduce((acc, curr) => acc + curr.total, 0);
+                const balance = INITIAL_SEED + sellsTotal - buysTotal;
+                const rev = st.review || {};
+
+                const row = [
+                    info.grade,
+                    info.classNum,
+                    info.studentNum,
+                    `"${info.name}"`,
+                    sellsTotal,
+                    buysTotal,
+                    balance,
+                    rev.rating || 0,
+                    `"${(rev.q1 || '').replace(/"/g, '""')}"`,
+                    `"${(rev.q2 || '').replace(/"/g, '""')}"`,
+                    `"${(rev.q3 || '').replace(/"/g, '""')}"`
+                ];
+                csvContent += row.join(",") + "\n";
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            const classNameText = selectedClass === 'all' ? '5학년전체' : `5학년${selectedClass}반`;
+            link.setAttribute("href", url);
+            link.setAttribute("download", `휘봉초_알뜰시장_활동기록_${classNameText}_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast(`${classNameText} CSV 파일 다운로드가 시작되었습니다.`);
+        }
+
+        // Toast Message Helper
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 2500);
         }
     </script>
 </body>
