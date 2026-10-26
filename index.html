@@ -13,7 +13,7 @@
     <!-- html5-qrcode for Camera QR Scanning -->
     <script src="https://unpkg.com/html5-qrcode"></script>
     <!-- qrcodejs for Generating QR Codes -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
         * { font-family: 'Pretendard', sans-serif; }
@@ -570,6 +570,34 @@
             renderAvatarSelector();
         };
 
+        // Render Avatar Options
+        function renderAvatarSelector() {
+            const container = document.getElementById('avatar-selector');
+            if (!container) return;
+            container.innerHTML = '';
+            AVATARS.forEach((avatar, index) => {
+                const isSelected = index === 0;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `w-10 h-10 rounded-xl text-xl flex items-center justify-center border-2 transition-all ${
+                    isSelected ? 'border-amber-400 bg-amber-100/60 scale-105' : 'border-slate-100 bg-slate-50 hover:bg-slate-100'
+                }`;
+                btn.innerText = avatar;
+                btn.dataset.selected = isSelected ? "true" : "false";
+                btn.onclick = () => selectAvatar(btn);
+                container.appendChild(btn);
+            });
+        }
+
+        function selectAvatar(selectedBtn) {
+            document.querySelectorAll('#avatar-selector button').forEach(b => {
+                b.className = 'w-10 h-10 rounded-xl text-xl flex items-center justify-center border-2 border-slate-100 bg-slate-50 hover:bg-slate-100 transition-all';
+                b.dataset.selected = "false";
+            });
+            selectedBtn.className = 'w-10 h-10 rounded-xl text-xl flex items-center justify-center border-2 border-amber-400 bg-amber-100/60 scale-105 transition-all';
+            selectedBtn.dataset.selected = "true";
+        }
+
         // --- QR CODE SCANNER LOGIC ---
         function startQRScan(targetType) {
             currentScanTarget = targetType;
@@ -681,8 +709,8 @@
             const qrBox = document.getElementById('qrcode-box');
             qrBox.innerHTML = '';
 
-            // Use compact format "Name|Price" to avoid QR capacity overflow
-            const qrData = `${name}|${price}`;
+            // Use URI encoding for Korean characters to prevent library UTF-8 encoding issues
+            const qrData = encodeURIComponent(`${name}|${price}`);
 
             document.getElementById('qr-label-output').classList.remove('hidden');
 
@@ -690,45 +718,64 @@
             setTimeout(() => {
                 new QRCode(qrBox, {
                     text: qrData,
-                    width: 160,
-                    height: 160,
-                    correctLevel: QRCode.CorrectLevel.M
+                    width: 140,
+                    height: 140,
+                    correctLevel: QRCode.CorrectLevel.L
                 });
                 showToast("QR 코드 라벨이 생성되었습니다!");
             }, 50);
         }
+        function onScanSuccess(decodedText, decodedResult) {
+            // Decoded text format: JSON string {"name": "...", "price": 1000} OR pipe format "ItemName|Price" OR legacy "ItemName,Price"
+            stopQRScan();
+            try {
+                // Decode URI if encoded
+                let rawText = decodedText;
+                try {
+                    rawText = decodeURIComponent(decodedText);
+                } catch(e) {}
 
-        // Render Avatar Options
-        function renderAvatarSelector() {
-            const container = document.getElementById('avatar-selector');
-            container.innerHTML = '';
-            AVATARS.forEach((av, index) => {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = `p-2 rounded-xl text-xl border transition-all ${index === 0 ? 'bg-amber-100 border-amber-400 scale-105' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`;
-                btn.innerText = av;
-                btn.onclick = () => {
-                    document.querySelectorAll('#avatar-selector button').forEach(b => {
-                        b.className = 'p-2 rounded-xl text-xl border border-slate-200 bg-slate-50 hover:bg-slate-100';
-                    });
-                    btn.className = 'p-2 rounded-xl text-xl border-2 border-amber-400 bg-amber-100 scale-105';
-                    btn.dataset.selected = "true";
-                };
-                if (index === 0) btn.dataset.selected = "true";
-                container.appendChild(btn);
-            });
-        }
+                let itemName = '';
+                let itemPrice = 0;
 
-        // Calculate Real-time Form Totals
-        function calcTotal(type) {
-            if (type === 'sell') {
-                const qty = Number(document.getElementById('sell-qty').value) || 0;
-                const price = Number(document.getElementById('sell-price').value) || 0;
-                document.getElementById('sell-total-preview').innerText = `${(qty * price).toLocaleString()}원`;
-            } else if (type === 'buy') {
-                const qty = Number(document.getElementById('buy-qty').value) || 0;
-                const price = Number(document.getElementById('buy-price').value) || 0;
-                document.getElementById('buy-total-preview').innerText = `${(qty * price).toLocaleString()}원`;
+                // Try parsing JSON format first
+                if (rawText.trim().startsWith('{')) {
+                    const parsed = JSON.parse(rawText);
+                    itemName = parsed.name || '';
+                    itemPrice = Number(parsed.price) || 0;
+                } else if (rawText.includes('|')) {
+                    // Pipe delimited format (compact)
+                    const parts = rawText.split('|');
+                    itemName = parts[0].trim();
+                    itemPrice = Number(parts[1].trim()) || 0;
+                } else {
+                    // Legacy CSV Fallback
+                    const parts = rawText.split(',');
+                    if (parts.length >= 2) {
+                        itemName = parts[0].trim();
+                        itemPrice = Number(parts[1].trim()) || 0;
+                    }
+                }
+
+                if (itemName) {
+                    if (currentScanTarget === 'sell') {
+                        document.getElementById('sell-name').value = itemName;
+                        document.getElementById('sell-qty').value = 1;
+                        document.getElementById('sell-price').value = itemPrice;
+                        calcTotal('sell');
+                    } else {
+                        document.getElementById('buy-name').value = itemName;
+                        document.getElementById('buy-qty').value = 1;
+                        document.getElementById('buy-price').value = itemPrice;
+                        calcTotal('buy');
+                    }
+                    showToast(`스캔 완료: ${itemName} (${itemPrice.toLocaleString()}원)`);
+                } else {
+                    showToast("올바른 알뜰시장 QR 코드가 아닙니다.");
+                }
+            } catch (e) {
+                console.error("QR Code Parsing Error:", e);
+                showToast("QR 코드 인식 중 오류가 발생했습니다.");
             }
         }
 
