@@ -725,59 +725,6 @@
                 showToast("QR 코드 라벨이 생성되었습니다!");
             }, 50);
         }
-        function onScanSuccess(decodedText, decodedResult) {
-            // Decoded text format: JSON string {"name": "...", "price": 1000} OR pipe format "ItemName|Price" OR legacy "ItemName,Price"
-            stopQRScan();
-            try {
-                // Decode URI if encoded
-                let rawText = decodedText;
-                try {
-                    rawText = decodeURIComponent(decodedText);
-                } catch(e) {}
-
-                let itemName = '';
-                let itemPrice = 0;
-
-                // Try parsing JSON format first
-                if (rawText.trim().startsWith('{')) {
-                    const parsed = JSON.parse(rawText);
-                    itemName = parsed.name || '';
-                    itemPrice = Number(parsed.price) || 0;
-                } else if (rawText.includes('|')) {
-                    // Pipe delimited format (compact)
-                    const parts = rawText.split('|');
-                    itemName = parts[0].trim();
-                    itemPrice = Number(parts[1].trim()) || 0;
-                } else {
-                    // Legacy CSV Fallback
-                    const parts = rawText.split(',');
-                    if (parts.length >= 2) {
-                        itemName = parts[0].trim();
-                        itemPrice = Number(parts[1].trim()) || 0;
-                    }
-                }
-
-                if (itemName) {
-                    if (currentScanTarget === 'sell') {
-                        document.getElementById('sell-name').value = itemName;
-                        document.getElementById('sell-qty').value = 1;
-                        document.getElementById('sell-price').value = itemPrice;
-                        calcTotal('sell');
-                    } else {
-                        document.getElementById('buy-name').value = itemName;
-                        document.getElementById('buy-qty').value = 1;
-                        document.getElementById('buy-price').value = itemPrice;
-                        calcTotal('buy');
-                    }
-                    showToast(`스캔 완료: ${itemName} (${itemPrice.toLocaleString()}원)`);
-                } else {
-                    showToast("올바른 알뜰시장 QR 코드가 아닙니다.");
-                }
-            } catch (e) {
-                console.error("QR Code Parsing Error:", e);
-                showToast("QR 코드 인식 중 오류가 발생했습니다.");
-            }
-        }
 
         // Add Transaction (Sell or Buy)
         function addTransaction(e, type) {
