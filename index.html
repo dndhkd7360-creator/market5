@@ -1064,12 +1064,12 @@
 
         function renderTeacherDashboard() {
             const db = getDatabase();
-            const selectedClass = document.getElementById('teacher-class-select').value;
+            const selectedClass = String(document.getElementById('teacher-class-select').value).trim();
             
-            const allStudents = Object.values(db);
+            const allStudents = Object.values(db).filter(st => st && st.info);
             const students = selectedClass === 'all' 
                 ? allStudents 
-                : allStudents.filter(st => String(st.info.classNum) === String(selectedClass));
+                : allStudents.filter(st => String(st.info.classNum).trim() === selectedClass);
 
             const titleElement = document.getElementById('teacher-dashboard-title');
             if (selectedClass === 'all') {
@@ -1090,11 +1090,14 @@
             }
 
             students.forEach(st => {
-                const info = st.info;
-                const sellsTotal = st.sells.reduce((acc, curr) => acc + curr.total, 0);
-                const buysTotal = st.buys.reduce((acc, curr) => acc + curr.total, 0);
+                const info = st.info || {};
+                const sells = st.sells || [];
+                const buys = st.buys || [];
+                
+                const sellsTotal = sells.reduce((acc, curr) => acc + (Number(curr.total) || 0), 0);
+                const buysTotal = buys.reduce((acc, curr) => acc + (Number(curr.total) || 0), 0);
                 const balance = INITIAL_SEED + sellsTotal - buysTotal;
-                const isReviewSubmitted = st.review !== null;
+                const isReviewSubmitted = !!st.review;
 
                 totalClassSell += sellsTotal;
                 totalClassBuy += buysTotal;
@@ -1103,12 +1106,12 @@
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-50 transition-colors">
                         <td class="p-3 font-semibold text-slate-800 flex items-center gap-1.5">
-                            <span>${info.avatar}</span>
-                            <span>${info.grade}학년 ${info.classNum}반 ${info.studentNum}번 ${info.name}</span>
+                            <span>${info.avatar || '🐶'}</span>
+                            <span>${info.grade || 5}학년 ${info.classNum || '-'}반 ${info.studentNum || '-'}번 ${info.name || '미인증'}</span>
                         </td>
-                        <td class="p-3 text-emerald-600 font-medium">${st.sells.length}건</td>
+                        <td class="p-3 text-emerald-600 font-medium">${sells.length}건</td>
                         <td class="p-3 font-bold text-slate-800">${sellsTotal.toLocaleString()}원</td>
-                        <td class="p-3 text-rose-600 font-medium">${st.buys.length}건</td>
+                        <td class="p-3 text-rose-600 font-medium">${buys.length}건</td>
                         <td class="p-3 font-bold text-slate-800">${buysTotal.toLocaleString()}원</td>
                         <td class="p-3 font-bold text-amber-600">${balance.toLocaleString()}원</td>
                         <td class="p-3">
