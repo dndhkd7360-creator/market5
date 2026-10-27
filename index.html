@@ -626,19 +626,34 @@
                 let itemName = '';
                 let itemPrice = 0;
 
+                // Handle URL-encoded text if needed
+                let rawText = decodedText.trim();
+                try {
+                    rawText = decodeURIComponent(rawText);
+                } catch (e) {
+                    // Ignore URI decode errors if plain string
+                }
+
                 // Try parsing JSON format first
-                if (decodedText.trim().startsWith('{')) {
-                    const parsed = JSON.parse(decodedText);
-                    itemName = parsed.name || '';
+                if (rawText.startsWith('{')) {
+                    const parsed = JSON.parse(rawText);
+                    itemName = parsed.name || parsed.title || parsed.item || '';
                     itemPrice = Number(parsed.price) || 0;
-                } else if (decodedText.includes('|')) {
+                } else if (rawText.includes('|')) {
                     // Pipe delimited format (compact)
-                    const parts = decodedText.split('|');
+                    const parts = rawText.split('|');
                     itemName = parts[0].trim();
                     itemPrice = Number(parts[1].trim()) || 0;
-                } else {
-                    // Legacy CSV Fallback
-                    const parts = decodedText.split(',');
+                } else if (rawText.includes(',')) {
+                    // CSV Fallback
+                    const parts = rawText.split(',');
+                    if (parts.length >= 2) {
+                        itemName = parts[0].trim();
+                        itemPrice = Number(parts[1].trim()) || 0;
+                    }
+                } else if (rawText.includes(':')) {
+                    // Key-value or colon delimited
+                    const parts = rawText.split(':');
                     if (parts.length >= 2) {
                         itemName = parts[0].trim();
                         itemPrice = Number(parts[1].trim()) || 0;
@@ -659,7 +674,7 @@
                     }
                     showToast(`스캔 완료: ${itemName} (${itemPrice.toLocaleString()}원)`);
                 } else {
-                    showToast("올바른 알뜰시장 QR 코드가 아닙니다.");
+                    showToast("스캔한 QR 코드에서 물건 정보를 찾을 수 없습니다.");
                 }
             } catch (e) {
                 console.error("QR Code Parsing Error:", e);
