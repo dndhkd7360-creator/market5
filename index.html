@@ -8,8 +8,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js for Teacher Dashboard -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- html5-qrcode for Camera QR Scanning -->
     <script src="https://unpkg.com/html5-qrcode"></script>
     <!-- qrcodejs for Generating QR Codes -->
@@ -37,7 +35,7 @@
     <header class="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-100 shadow-sm">
         <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <!-- Navigation Buttons (Home & Back) for Student View -->
+                <!-- Navigation Buttons for Student View -->
                 <div id="student-nav-buttons" class="hidden flex items-center gap-1.5">
                     <button onclick="goHome()" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm flex items-center justify-center transition-all" title="로그인 처음 화면으로 이동">
                         <i class="fa-solid fa-house"></i>
@@ -55,7 +53,7 @@
                 </div>
             </div>
             <div class="flex items-center gap-2">
-                <!-- QR Generator Button (Always Active) -->
+                <!-- QR Generator Button -->
                 <button onclick="openQRGeneratorModal()" class="text-xs px-3 py-2 bg-amber-50 text-amber-700 border border-amber-200 font-bold rounded-xl hover:bg-amber-100 transition-all flex items-center gap-1 shadow-sm" title="물품 가격표 QR 만들기">
                     <i class="fa-solid fa-qrcode"></i> QR 생성기
                 </button>
@@ -66,7 +64,7 @@
                         <i class="fa-solid fa-right-from-bracket"></i>
                     </button>
                 </div>
-                <!-- Teacher Mode Button (Always Active) -->
+                <!-- Teacher Mode Button -->
                 <button id="teacher-btn" onclick="openTeacherLoginModal()" class="text-xs px-3 py-2 bg-indigo-50 text-indigo-600 border border-indigo-200 font-bold rounded-xl hover:bg-indigo-100 transition-all flex items-center gap-1 shadow-sm">
                     <i class="fa-solid fa-user-shield"></i> 선생님 모드
                 </button>
@@ -181,7 +179,7 @@
 
                             <!-- QR Scan Trigger Button for Sell -->
                             <button onclick="startQRScan('sell')" class="w-full mb-4 py-2.5 bg-emerald-100/70 hover:bg-emerald-200/80 text-emerald-800 font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all">
-                                📷 📷 QR 코드로 판매 물품 자동 채우기
+                                📷 QR 코드로 판매 물품 자동 채우기
                             </button>
 
                             <form id="sell-form" onsubmit="addTransaction(event, 'sell')" class="space-y-3 bg-slate-50/80 p-4 rounded-2xl border border-slate-100 mb-4">
@@ -225,6 +223,11 @@
                                 </span>
                                 <span id="section-buy-total" class="text-3xl font-black text-rose-600">0원</span>
                             </div>
+
+                            <!-- QR Scan Trigger Button for Buy -->
+                            <button onclick="startQRScan('buy')" class="w-full mb-4 py-2.5 bg-rose-100/70 hover:bg-rose-200/80 text-rose-800 font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all">
+                                📷 QR 코드로 구매 물품 자동 채우기
+                            </button>
 
                             <form id="buy-form" onsubmit="addTransaction(event, 'buy')" class="space-y-3 bg-slate-50/80 p-4 rounded-2xl border border-slate-100 mb-4">
                                 <input type="text" id="buy-name" placeholder="물건 이름 (예: 학용품 세트)" required class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-rose-400">
@@ -598,6 +601,17 @@
             selectedBtn.dataset.selected = "true";
         }
 
+        // --- CALCULATE LIVE TOTAL ---
+        function calcTotal(type) {
+            const qty = Number(document.getElementById(`${type}-qty`).value) || 0;
+            const price = Number(document.getElementById(`${type}-price`).value) || 0;
+            const total = qty * price;
+            const previewElem = document.getElementById(`${type}-total-preview`);
+            if (previewElem) {
+                previewElem.innerText = `${total.toLocaleString()}원`;
+            }
+        }
+
         // --- QR CODE SCANNER LOGIC ---
         function startQRScan(targetType) {
             currentScanTarget = targetType;
@@ -620,13 +634,11 @@
         }
 
         function onScanSuccess(decodedText, decodedResult) {
-            // Decoded text format: JSON string {"name": "...", "price": 1000} OR pipe format "ItemName|Price" OR legacy "ItemName,Price"
             stopQRScan();
             try {
                 let itemName = '';
                 let itemPrice = 0;
 
-                // Handle URL-encoded text if needed
                 let rawText = decodedText.trim();
                 try {
                     rawText = decodeURIComponent(rawText);
@@ -634,25 +646,21 @@
                     // Ignore URI decode errors if plain string
                 }
 
-                // Try parsing JSON format first
                 if (rawText.startsWith('{')) {
                     const parsed = JSON.parse(rawText);
                     itemName = parsed.name || parsed.title || parsed.item || '';
                     itemPrice = Number(parsed.price) || 0;
                 } else if (rawText.includes('|')) {
-                    // Pipe delimited format (compact)
                     const parts = rawText.split('|');
                     itemName = parts[0].trim();
                     itemPrice = Number(parts[1].trim()) || 0;
                 } else if (rawText.includes(',')) {
-                    // CSV Fallback
                     const parts = rawText.split(',');
                     if (parts.length >= 2) {
                         itemName = parts[0].trim();
                         itemPrice = Number(parts[1].trim()) || 0;
                     }
                 } else if (rawText.includes(':')) {
-                    // Key-value or colon delimited
                     const parts = rawText.split(':');
                     if (parts.length >= 2) {
                         itemName = parts[0].trim();
@@ -683,7 +691,7 @@
         }
 
         function onScanFailure(error) {
-            // Ignore frame scan failures
+            // Frame scan failure ignored
         }
 
         function stopQRScan() {
@@ -724,12 +732,10 @@
             const qrBox = document.getElementById('qrcode-box');
             qrBox.innerHTML = '';
 
-            // Use URI encoding for Korean characters to prevent library UTF-8 encoding issues
             const qrData = encodeURIComponent(`${name}|${price}`);
 
             document.getElementById('qr-label-output').classList.remove('hidden');
 
-            // Timeout to ensure DOM element is ready for qrcode.js rendering
             setTimeout(() => {
                 new QRCode(qrBox, {
                     text: qrData,
@@ -817,7 +823,6 @@
                 avatar: selectedAvatar
             };
 
-            // Init student DB if not exists
             const db = getDatabase();
             if (!db[studentId]) {
                 db[studentId] = {
@@ -828,22 +833,18 @@
                 };
                 saveDatabase(db);
             } else {
-                // Update avatar if changed
                 db[studentId].info.avatar = selectedAvatar;
                 saveDatabase(db);
             }
 
-            // UI Switch
             document.getElementById('login-section').classList.add('hidden');
             document.getElementById('menu-section').classList.remove('hidden');
 
-            // Header Navigation & User Info Update
             document.getElementById('student-nav-buttons').classList.remove('hidden');
             document.getElementById('header-user-info').classList.remove('hidden');
             document.getElementById('user-avatar-badge').innerText = selectedAvatar;
             document.getElementById('user-name-badge').innerText = name;
 
-            // Welcome Card & Summary Badge Update
             document.getElementById('display-avatar').innerText = selectedAvatar;
             document.getElementById('display-name').innerText = `${name} 학생`;
             document.getElementById('display-class').innerText = `${grade}학년 ${classNum}반 ${studentNum}번`;
@@ -855,7 +856,6 @@
             showToast(`${name} 학생, 반갑습니다! 👋`);
         }
 
-        // Student Header Navigation Functions
         function goHome() {
             if (confirm("로그인 화면으로 이동하시겠습니까?")) {
                 logout();
@@ -865,10 +865,8 @@
         function goBack() {
             const reviewTab = document.getElementById('tab-review');
             if (!reviewTab.classList.contains('hidden')) {
-                // If in Review tab, go back to Ledger tab
                 switchTab('ledger');
             } else {
-                // If in Ledger tab, ask to logout/go home
                 if (confirm("처음 로그인 화면으로 돌아가시겠습니까?")) {
                     logout();
                 }
@@ -885,7 +883,6 @@
             showToast("로그아웃 되었습니다.");
         }
 
-        // Tab Switching
         function switchTab(tab) {
             const ledgerTab = document.getElementById('tab-ledger');
             const reviewTab = document.getElementById('tab-review');
@@ -895,17 +892,16 @@
             if (tab === 'ledger') {
                 ledgerTab.classList.remove('hidden');
                 reviewTab.classList.add('hidden');
-                ledgerBtn.className = "p-4 rounded-2xl border-2 border-amber-400 bg-amber-50 text-amber-900 font-extrabold flex items-center justify-center gap-2 transition-all shadow-sm";
-                reviewBtn.className = "p-4 rounded-2xl border-2 border-transparent bg-white hover:bg-slate-50 text-slate-600 font-bold flex items-center justify-center gap-2 transition-all shadow-sm";
+                ledgerBtn.className = "p-4 rounded-2xl border-2 border-amber-400 bg-amber-50 text-amber-900 font-extrabold flex items-center justify-center gap-2 transition-all shadow-sm text-sm md:text-base";
+                reviewBtn.className = "p-4 rounded-2xl border-2 border-transparent bg-white hover:bg-slate-50 text-slate-600 font-bold flex items-center justify-center gap-2 transition-all shadow-sm text-sm md:text-base";
             } else {
                 ledgerTab.classList.add('hidden');
                 reviewTab.classList.remove('hidden');
-                reviewBtn.className = "p-4 rounded-2xl border-2 border-amber-400 bg-amber-50 text-amber-900 font-extrabold flex items-center justify-center gap-2 transition-all shadow-sm";
-                ledgerBtn.className = "p-4 rounded-2xl border-2 border-transparent bg-white hover:bg-slate-50 text-slate-600 font-bold flex items-center justify-center gap-2 transition-all shadow-sm";
+                reviewBtn.className = "p-4 rounded-2xl border-2 border-amber-400 bg-amber-50 text-amber-900 font-extrabold flex items-center justify-center gap-2 transition-all shadow-sm text-sm md:text-base";
+                ledgerBtn.className = "p-4 rounded-2xl border-2 border-transparent bg-white hover:bg-slate-50 text-slate-600 font-bold flex items-center justify-center gap-2 transition-all shadow-sm text-sm md:text-base";
             }
         }
 
-        // Load and Render Student Data
         function loadStudentData() {
             if (!currentUser) return;
             const db = getDatabase();
@@ -956,7 +952,6 @@
                 buyList.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">아직 등록된 구입 물건이 없어요.</p>`;
             }
 
-            // Update Totals (Section Top Cards & Footer Summary)
             document.getElementById('section-sell-total').innerText = `${totalIncome.toLocaleString()}원`;
             document.getElementById('section-buy-total').innerText = `${totalExpense.toLocaleString()}원`;
 
@@ -965,7 +960,6 @@
             document.getElementById('summary-expense').innerText = `${totalExpense.toLocaleString()}원`;
             document.getElementById('summary-balance').innerText = `${currentBalance.toLocaleString()}원`;
 
-            // Load Existing Review
             if (studentData.review) {
                 setRating(studentData.review.rating);
                 document.getElementById('review-q1').value = studentData.review.q1 || '';
@@ -979,7 +973,6 @@
             }
         }
 
-        // Set Star Rating
         function setRating(rating) {
             currentRating = rating;
             const stars = document.querySelectorAll('#star-rating i');
@@ -994,7 +987,6 @@
             document.getElementById('star-hint').innerText = hints[rating];
         }
 
-        // Image Base64 Convert
         function previewImage(event) {
             const file = event.target.files[0];
             if (file) {
@@ -1008,7 +1000,6 @@
             }
         }
 
-        // Save Review
         function saveReview(e) {
             e.preventDefault();
             if (!currentUser) return;
@@ -1047,14 +1038,12 @@
             const pass = document.getElementById('teacher-pass').value;
             const selectedClass = document.getElementById('teacher-login-class').value;
 
-            // Teacher Password Verification (1234)
             if (pass === '1234') {
                 closeTeacherLoginModal();
                 document.getElementById('login-section').classList.add('hidden');
                 document.getElementById('menu-section').classList.add('hidden');
                 document.getElementById('teacher-section').classList.remove('hidden');
 
-                // Set header class select box value
                 document.getElementById('teacher-class-select').value = selectedClass;
 
                 renderTeacherDashboard();
@@ -1077,13 +1066,11 @@
             const db = getDatabase();
             const selectedClass = document.getElementById('teacher-class-select').value;
             
-            // Filter students by selected class
             const allStudents = Object.values(db);
             const students = selectedClass === 'all' 
                 ? allStudents 
                 : allStudents.filter(st => String(st.info.classNum) === String(selectedClass));
 
-            // Update title label
             const titleElement = document.getElementById('teacher-dashboard-title');
             if (selectedClass === 'all') {
                 titleElement.innerText = `휘봉초 5학년 전체 알뜰시장 학습 통합 모니터링`;
@@ -1141,13 +1128,11 @@
                 `;
             });
 
-            // Update Summaries
             document.getElementById('teacher-total-sell').innerText = `${totalClassSell.toLocaleString()}원`;
             document.getElementById('teacher-total-buy').innerText = `${totalClassBuy.toLocaleString()}원`;
             document.getElementById('teacher-review-ratio').innerText = `${reviewSubmittedCount} / ${students.length} 명`;
         }
 
-        // Delete Student Data (Teacher Feature)
         function deleteStudent(studentId, studentName) {
             if (confirm(`${studentName} 학생의 모든 데이터(판매, 구입, 소감문)를 삭제하시겠습니까?`)) {
                 const db = getDatabase();
@@ -1158,7 +1143,6 @@
             }
         }
 
-        // Open Student Detail Modal
         function openStudentModal(studentId) {
             const db = getDatabase();
             const student = db[studentId];
@@ -1168,7 +1152,6 @@
             document.getElementById('modal-name').innerText = student.info.name;
             document.getElementById('modal-info').innerText = `${student.info.grade}학년 ${student.info.classNum}반 ${student.info.studentNum}번`;
 
-            // Review Modal
             if (student.review) {
                 document.getElementById('modal-star').innerText = '★'.repeat(student.review.rating);
                 document.getElementById('modal-q1').innerText = student.review.q1 || '-';
@@ -1196,7 +1179,6 @@
             document.getElementById('student-modal').classList.add('hidden');
         }
 
-        // CSV Export Function
         function exportCSV() {
             const db = getDatabase();
             const selectedClass = document.getElementById('teacher-class-select').value;
@@ -1249,7 +1231,6 @@
             showToast(`${classNameText} CSV 파일 다운로드가 시작되었습니다.`);
         }
 
-        // Toast Message Helper
         function showToast(msg) {
             const toast = document.getElementById('toast');
             document.getElementById('toast-msg').innerText = msg;
