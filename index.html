@@ -12,6 +12,42 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
     <!-- qrcodejs for Generating QR Codes -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    
+    <!-- Firebase SDK (v11.6.1) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase Setup
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'hwibong-market-default';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : { apiKey: "demo", authDomain: "demo.firebaseapp.com", projectId: "demo" };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        window.db = db;
+        window.auth = auth;
+        window.appId = appId;
+        window.firebaseDocs = { doc, setDoc, onSnapshot, collection, deleteDoc };
+
+        // Auto Authentication Rule 3 Guard
+        async function initAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (err) {
+                console.error("Auth initialization error:", err);
+            }
+        }
+        initAuth();
+    </script>
     <style>
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
         * { font-family: 'Pretendard', sans-serif; }
@@ -558,20 +594,23 @@
         let photoDataUrl = '';
         let html5QrCode = null;
         let currentScanTarget = 'sell'; // 'sell' or 'buy'
-
-        // Local Storage / State Database Initialization
-        function getDatabase() {
-            const data = localStorage.getItem('hwibong_market_db');
-            return data ? JSON.parse(data) : {};
-        }
-
-        function saveDatabase(db) {
-            localStorage.setItem('hwibong_market_db', JSON.stringify(db));
-        }
+        let teacherUnsubscribe = null;
+        let studentUnsubscribe = null;
 
         window.onload = function() {
             renderAvatarSelector();
         };
+
+        // Firebase Firestore collection path strictly follows RULE 1
+        function getMarketCollectionRef() {
+            const { collection } = window.firebaseDocs;
+            return collection(window.db, 'artifacts', window.appId, 'public', 'data', 'students');
+        }
+
+        function getStudentDocRef(studentId) {
+            const { doc } = window.firebaseDocs;
+            return doc(window.db, 'artifacts', window.appId, 'public', 'data', 'students', studentId);
+        }
 
         // Render Avatar Options
         function renderAvatarSelector() {
@@ -642,9 +681,7 @@
                 let rawText = decodedText.trim();
                 try {
                     rawText = decodeURIComponent(rawText);
-                } catch (e) {
-                    // Ignore URI decode errors if plain string
-                }
+                } catch (e) {}
 
                 if (rawText.startsWith('{')) {
                     const parsed = JSON.parse(rawText);
@@ -690,9 +727,7 @@
             }
         }
 
-        function onScanFailure(error) {
-            // Frame scan failure ignored
-        }
+        function onScanFailure(error) {}
 
         function stopQRScan() {
             if (html5QrCode && html5QrCode.isScanning) {
@@ -747,13 +782,26 @@
             }, 50);
         }
 
-        // Add Transaction (Sell or Buy)
-        function addTransaction(e, type) {
-            e.preventDefault();
+        // Save Student Data directly to Firestore Cloud Database
+        async function updateStudentInCloud(studentData) {
             if (!currentUser) return;
+            const { setDoc } = window.firebaseDocs;
+            try {
+                await setDoc(getStudentDocRef(currentUser.id), studentData);
+            } catch (err) {
+                console.error("Cloud Save Error:", err);
+                showToast("클라우드 저장 실패: 네트워크 상태를 확인하세요.");
+            }
+        }
 
-            const db = getDatabase();
-            const studentData = db[currentUser.id];
+        // Add Transaction (Sell or Buy)
+        async function addTransaction(e, type) {
+            e.preventDefault();
+            if (!currentUser || !window.currentStudentData) return;
+
+            const studentData = window.currentStudentData;
+            if (!studentData.sells) studentData.sells = [];
+            if (!studentData.buys) studentData.buys = [];
 
             if (type === 'sell') {
                 const name = document.getElementById('sell-name').value.trim();
@@ -765,7 +813,7 @@
                 studentData.sells.push({ id: Date.now(), name, qty, price, total, memo });
                 document.getElementById('sell-form').reset();
                 document.getElementById('sell-total-preview').innerText = '0원';
-                showToast("판매 내역이 추가되었습니다! 📈");
+                showToast("판매 내역이 클라우드에 기록되었습니다! 📈");
             } else {
                 const name = document.getElementById('buy-name').value.trim();
                 const qty = Number(document.getElementById('buy-qty').value);
@@ -775,32 +823,29 @@
                 studentData.buys.push({ id: Date.now(), name, qty, price, total });
                 document.getElementById('buy-form').reset();
                 document.getElementById('buy-total-preview').innerText = '0원';
-                showToast("구입 내역이 추가되었습니다! 🛒");
+                showToast("구입 내역이 클라우드에 기록되었습니다! 🛒");
             }
 
-            saveDatabase(db);
-            loadStudentData();
+            await updateStudentInCloud(studentData);
         }
 
         // Delete Transaction
-        function deleteTransaction(type, id) {
-            if (!currentUser) return;
-            const db = getDatabase();
-            const studentData = db[currentUser.id];
+        async function deleteTransaction(type, id) {
+            if (!currentUser || !window.currentStudentData) return;
+            const studentData = window.currentStudentData;
 
             if (type === 'sell') {
-                studentData.sells = studentData.sells.filter(item => item.id !== id);
+                studentData.sells = (studentData.sells || []).filter(item => item.id !== id);
             } else {
-                studentData.buys = studentData.buys.filter(item => item.id !== id);
+                studentData.buys = (studentData.buys || []).filter(item => item.id !== id);
             }
 
-            saveDatabase(db);
-            loadStudentData();
+            await updateStudentInCloud(studentData);
             showToast("항목이 삭제되었습니다.");
         }
 
-        // Student Login
-        function handleStudentLogin(e) {
+        // Student Login with Real-time Subscription
+        async function handleStudentLogin(e) {
             e.preventDefault();
             const grade = document.getElementById('grade').value;
             const classNum = document.getElementById('class-num').value;
@@ -823,20 +868,6 @@
                 avatar: selectedAvatar
             };
 
-            const db = getDatabase();
-            if (!db[studentId]) {
-                db[studentId] = {
-                    info: currentUser,
-                    sells: [],
-                    buys: [],
-                    review: null
-                };
-                saveDatabase(db);
-            } else {
-                db[studentId].info.avatar = selectedAvatar;
-                saveDatabase(db);
-            }
-
             document.getElementById('login-section').classList.add('hidden');
             document.getElementById('menu-section').classList.remove('hidden');
 
@@ -852,7 +883,28 @@
                 document.getElementById('summary-greeting-name').innerText = name;
             }
 
-            loadStudentData();
+            // Real-time listener for current student
+            const { onSnapshot } = window.firebaseDocs;
+            if (studentUnsubscribe) studentUnsubscribe();
+
+            studentUnsubscribe = onSnapshot(getStudentDocRef(studentId), (docSnap) => {
+                if (docSnap.exists()) {
+                    window.currentStudentData = docSnap.data();
+                } else {
+                    window.currentStudentData = {
+                        info: currentUser,
+                        sells: [],
+                        buys: [],
+                        review: null
+                    };
+                    updateStudentInCloud(window.currentStudentData);
+                }
+                renderStudentUI(window.currentStudentData);
+            }, (error) => {
+                console.error("Student snapshot error:", error);
+                showToast("실시간 데이터 수신 오류가 발생했습니다.");
+            });
+
             showToast(`${name} 학생, 반갑습니다! 👋`);
         }
 
@@ -874,7 +926,10 @@
         }
 
         function logout() {
+            if (studentUnsubscribe) studentUnsubscribe();
+            if (teacherUnsubscribe) teacherUnsubscribe();
             currentUser = null;
+            window.currentStudentData = null;
             document.getElementById('menu-section').classList.add('hidden');
             document.getElementById('teacher-section').classList.add('hidden');
             document.getElementById('header-user-info').classList.add('hidden');
@@ -902,16 +957,14 @@
             }
         }
 
-        function loadStudentData() {
-            if (!currentUser) return;
-            const db = getDatabase();
-            const studentData = db[currentUser.id];
+        function renderStudentUI(studentData) {
+            if (!studentData) return;
 
             // Render Sell List
             const sellList = document.getElementById('sell-list');
             sellList.innerHTML = '';
             let totalIncome = 0;
-            studentData.sells.forEach(item => {
+            (studentData.sells || []).forEach(item => {
                 totalIncome += item.total;
                 sellList.innerHTML += `
                     <div class="bg-emerald-50/60 border border-emerald-100 p-2.5 rounded-xl flex justify-between items-center text-xs">
@@ -926,7 +979,7 @@
                     </div>
                 `;
             });
-            if (studentData.sells.length === 0) {
+            if (!studentData.sells || studentData.sells.length === 0) {
                 sellList.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">아직 등록된 판매 물건이 없어요.</p>`;
             }
 
@@ -934,7 +987,7 @@
             const buyList = document.getElementById('buy-list');
             buyList.innerHTML = '';
             let totalExpense = 0;
-            studentData.buys.forEach(item => {
+            (studentData.buys || []).forEach(item => {
                 totalExpense += item.total;
                 buyList.innerHTML += `
                     <div class="bg-rose-50/60 border border-rose-100 p-2.5 rounded-xl flex justify-between items-center text-xs">
@@ -948,7 +1001,7 @@
                     </div>
                 `;
             });
-            if (studentData.buys.length === 0) {
+            if (!studentData.buys || studentData.buys.length === 0) {
                 buyList.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">아직 등록된 구입 물건이 없어요.</p>`;
             }
 
@@ -1000,9 +1053,9 @@
             }
         }
 
-        function saveReview(e) {
+        async function saveReview(e) {
             e.preventDefault();
-            if (!currentUser) return;
+            if (!currentUser || !window.currentStudentData) return;
             if (currentRating === 0) {
                 showToast("별점 만족도를 선택해 주세요!");
                 return;
@@ -1017,14 +1070,13 @@
                 updatedAt: new Date().toLocaleTimeString()
             };
 
-            const db = getDatabase();
-            db[currentUser.id].review = review;
-            saveDatabase(db);
+            window.currentStudentData.review = review;
+            await updateStudentInCloud(window.currentStudentData);
 
-            showToast("소감문이 성공적으로 작성 및 저장되었습니다! ✨");
+            showToast("소감문이 성공적으로 제출되었습니다! ✨");
         }
 
-        // --- TEACHER MONITORING DASHBOARD ---
+        // --- TEACHER MONITORING DASHBOARD (REAL-TIME CLOUD SYNC) ---
         function openTeacherLoginModal() {
             document.getElementById('teacher-auth-modal').classList.remove('hidden');
         }
@@ -1046,14 +1098,15 @@
 
                 document.getElementById('teacher-class-select').value = selectedClass;
 
-                renderTeacherDashboard();
-                showToast("선생님 모드로 전환되었습니다.");
+                subscribeTeacherDashboard();
+                showToast("선생님 모드로 전환되었습니다. (실시간 데이터 동기화 활성화)");
             } else {
                 showToast("비밀번호가 올바르지 않습니다.");
             }
         }
 
         function closeTeacherMode() {
+            if (teacherUnsubscribe) teacherUnsubscribe();
             document.getElementById('teacher-section').classList.add('hidden');
             if (currentUser) {
                 document.getElementById('menu-section').classList.remove('hidden');
@@ -1062,21 +1115,41 @@
             }
         }
 
+        // Rule 2 compliant Firestore listener (Simple collection query without orderBy/where)
+        function subscribeTeacherDashboard() {
+            const { onSnapshot } = window.firebaseDocs;
+            if (teacherUnsubscribe) teacherUnsubscribe();
+
+            teacherUnsubscribe = onSnapshot(getMarketCollectionRef(), (querySnapshot) => {
+                const studentsList = [];
+                querySnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    if (data && data.info) {
+                        studentsList.push(data);
+                    }
+                });
+                window.allCloudStudentsData = studentsList;
+                renderTeacherDashboard();
+            }, (error) => {
+                console.error("Teacher snapshot error:", error);
+                showToast("선생님 실시간 대시보드 불러오기 오류가 발생했습니다.");
+            });
+        }
+
         function renderTeacherDashboard() {
-            const db = getDatabase();
             const selectedClass = String(document.getElementById('teacher-class-select').value).trim();
+            const allStudents = window.allCloudStudentsData || [];
             
-            // 데이터 안전성 검증 포함
-            const allStudents = Object.values(db).filter(st => st && st.info && st.info.id);
+            // Client-side filtering compliant with RULE 2
             const students = selectedClass === 'all' 
                 ? allStudents 
-                : allStudents.filter(st => String(st.info.classNum).trim() === selectedClass);
+                : allStudents.filter(st => String(st.info && st.info.classNum).trim() === selectedClass);
 
             const titleElement = document.getElementById('teacher-dashboard-title');
             if (selectedClass === 'all') {
-                titleElement.innerText = `휘봉초 5학년 전체 알뜰시장 학습 통합 모니터링`;
+                titleElement.innerText = `휘봉초 5학년 전체 알뜰시장 학습 통합 모니터링 (${students.length}명 대기 중)`;
             } else {
-                titleElement.innerText = `휘봉초 5학년 ${selectedClass}반 알뜰시장 학습 모니터링`;
+                titleElement.innerText = `휘봉초 5학년 ${selectedClass}반 알뜰시장 학습 모니터링 (${students.length}명 접속)`;
             }
 
             let totalClassSell = 0;
@@ -1087,7 +1160,7 @@
             tbody.innerHTML = '';
 
             if (students.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-slate-400">${selectedClass === 'all' ? '아직 등록된 학생 기록 데이터가 없습니다.' : `5학년 ${selectedClass}반에 등록된 학생 기록 데이터가 없습니다.`}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-slate-400">${selectedClass === 'all' ? '아직 실시간으로 입력된 학생 기록이 없습니다.' : `5학년 ${selectedClass}반에 접속하거나 기록을 남긴 학생이 없습니다.`}</td></tr>`;
             } else {
                 students.forEach(st => {
                     const info = st.info || {};
@@ -1137,19 +1210,22 @@
             document.getElementById('teacher-review-ratio').innerText = `${reviewSubmittedCount} / ${students.length} 명`;
         }
 
-        function deleteStudent(studentId, studentName) {
-            if (confirm(`${studentName} 학생의 모든 데이터(판매, 구입, 소감문)를 삭제하시겠습니까?`)) {
-                const db = getDatabase();
-                delete db[studentId];
-                saveDatabase(db);
-                renderTeacherDashboard();
-                showToast(`${studentName} 학생의 데이터가 삭제되었습니다.`);
+        async function deleteStudent(studentId, studentName) {
+            if (confirm(`${studentName} 학생의 모든 데이터(판매, 구입, 소감문)를 클라우드에서 삭제하시겠습니까?`)) {
+                const { deleteDoc } = window.firebaseDocs;
+                try {
+                    await deleteDoc(getStudentDocRef(studentId));
+                    showToast(`${studentName} 학생의 데이터가 삭제되었습니다.`);
+                } catch (err) {
+                    console.error("Delete Error:", err);
+                    showToast("삭제 중 오류가 발생했습니다.");
+                }
             }
         }
 
         function openStudentModal(studentId) {
-            const db = getDatabase();
-            const student = db[studentId];
+            const allStudents = window.allCloudStudentsData || [];
+            const student = allStudents.find(st => st.info && st.info.id === studentId);
             if (!student) return;
 
             document.getElementById('modal-avatar').innerText = student.info.avatar;
@@ -1184,13 +1260,12 @@
         }
 
         function exportCSV() {
-            const db = getDatabase();
             const selectedClass = document.getElementById('teacher-class-select').value;
-            const allStudents = Object.values(db);
+            const allStudents = window.allCloudStudentsData || [];
             
             const students = selectedClass === 'all' 
                 ? allStudents 
-                : allStudents.filter(st => String(st.info.classNum) === String(selectedClass));
+                : allStudents.filter(st => String(st.info && st.info.classNum) === String(selectedClass));
 
             if (students.length === 0) {
                 showToast("다운로드할 데이터가 없습니다.");
@@ -1201,17 +1276,17 @@
             csvContent += "학년,반,번호,이름,총판매액,총구입액,최종잔액,소감점수,질문1(인기물건),질문2(소감),질문3(다음계획)\n";
 
             students.forEach(st => {
-                const info = st.info;
-                const sellsTotal = st.sells.reduce((acc, curr) => acc + curr.total, 0);
-                const buysTotal = st.buys.reduce((acc, curr) => acc + curr.total, 0);
+                const info = st.info || {};
+                const sellsTotal = (st.sells || []).reduce((acc, curr) => acc + (Number(curr.total) || 0), 0);
+                const buysTotal = (st.buys || []).reduce((acc, curr) => acc + (Number(curr.total) || 0), 0);
                 const balance = INITIAL_SEED + sellsTotal - buysTotal;
                 const rev = st.review || {};
 
                 const row = [
-                    info.grade,
-                    info.classNum,
-                    info.studentNum,
-                    `"${info.name}"`,
+                    info.grade || 5,
+                    info.classNum || '-',
+                    info.studentNum || '-',
+                    `"${info.name || ''}"`,
                     sellsTotal,
                     buysTotal,
                     balance,
