@@ -1066,7 +1066,8 @@
             const db = getDatabase();
             const selectedClass = String(document.getElementById('teacher-class-select').value).trim();
             
-            const allStudents = Object.values(db).filter(st => st && st.info);
+            // 데이터 안전성 검증 포함
+            const allStudents = Object.values(db).filter(st => st && st.info && st.info.id);
             const students = selectedClass === 'all' 
                 ? allStudents 
                 : allStudents.filter(st => String(st.info.classNum).trim() === selectedClass);
@@ -1087,49 +1088,49 @@
 
             if (students.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-slate-400">${selectedClass === 'all' ? '아직 등록된 학생 기록 데이터가 없습니다.' : `5학년 ${selectedClass}반에 등록된 학생 기록 데이터가 없습니다.`}</td></tr>`;
+            } else {
+                students.forEach(st => {
+                    const info = st.info || {};
+                    const sells = st.sells || [];
+                    const buys = st.buys || [];
+                    
+                    const sellsTotal = sells.reduce((acc, curr) => acc + (Number(curr.total) || 0), 0);
+                    const buysTotal = buys.reduce((acc, curr) => acc + (Number(curr.total) || 0), 0);
+                    const balance = INITIAL_SEED + sellsTotal - buysTotal;
+                    const isReviewSubmitted = !!st.review;
+
+                    totalClassSell += sellsTotal;
+                    totalClassBuy += buysTotal;
+                    if (isReviewSubmitted) reviewSubmittedCount++;
+
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="p-3 font-semibold text-slate-800 flex items-center gap-1.5">
+                                <span>${info.avatar || '🐶'}</span>
+                                <span>${info.grade || 5}학년 ${info.classNum || '-'}반 ${info.studentNum || '-'}번 ${info.name || '미인증'}</span>
+                            </td>
+                            <td class="p-3 text-emerald-600 font-medium">${sells.length}건</td>
+                            <td class="p-3 font-bold text-slate-800">${sellsTotal.toLocaleString()}원</td>
+                            <td class="p-3 text-rose-600 font-medium">${buys.length}건</td>
+                            <td class="p-3 font-bold text-slate-800">${buysTotal.toLocaleString()}원</td>
+                            <td class="p-3 font-bold text-amber-600">${balance.toLocaleString()}원</td>
+                            <td class="p-3">
+                                ${isReviewSubmitted ? 
+                                    `<span class="bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full text-[10px]">작성 완료</span>` : 
+                                    `<span class="bg-slate-100 text-slate-400 font-medium px-2 py-0.5 rounded-full text-[10px]">미작성</span>`}
+                            </td>
+                            <td class="p-3 text-center flex items-center justify-center gap-1">
+                                <button onclick="openStudentModal('${info.id}')" class="px-2.5 py-1 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-bold rounded-lg text-[10px]">
+                                    상세 보기
+                                </button>
+                                <button onclick="deleteStudent('${info.id}', '${info.name}')" class="px-2.5 py-1 bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold rounded-lg text-[10px]">
+                                    삭제
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
             }
-
-            students.forEach(st => {
-                const info = st.info || {};
-                const sells = st.sells || [];
-                const buys = st.buys || [];
-                
-                const sellsTotal = sells.reduce((acc, curr) => acc + (Number(curr.total) || 0), 0);
-                const buysTotal = buys.reduce((acc, curr) => acc + (Number(curr.total) || 0), 0);
-                const balance = INITIAL_SEED + sellsTotal - buysTotal;
-                const isReviewSubmitted = !!st.review;
-
-                totalClassSell += sellsTotal;
-                totalClassBuy += buysTotal;
-                if (isReviewSubmitted) reviewSubmittedCount++;
-
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="p-3 font-semibold text-slate-800 flex items-center gap-1.5">
-                            <span>${info.avatar || '🐶'}</span>
-                            <span>${info.grade || 5}학년 ${info.classNum || '-'}반 ${info.studentNum || '-'}번 ${info.name || '미인증'}</span>
-                        </td>
-                        <td class="p-3 text-emerald-600 font-medium">${sells.length}건</td>
-                        <td class="p-3 font-bold text-slate-800">${sellsTotal.toLocaleString()}원</td>
-                        <td class="p-3 text-rose-600 font-medium">${buys.length}건</td>
-                        <td class="p-3 font-bold text-slate-800">${buysTotal.toLocaleString()}원</td>
-                        <td class="p-3 font-bold text-amber-600">${balance.toLocaleString()}원</td>
-                        <td class="p-3">
-                            ${isReviewSubmitted ? 
-                                `<span class="bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full text-[10px]">작성 완료</span>` : 
-                                `<span class="bg-slate-100 text-slate-400 font-medium px-2 py-0.5 rounded-full text-[10px]">미작성</span>`}
-                        </td>
-                        <td class="p-3 text-center flex items-center justify-center gap-1">
-                            <button onclick="openStudentModal('${info.id}')" class="px-2.5 py-1 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-bold rounded-lg text-[10px]">
-                                상세 보기
-                            </button>
-                            <button onclick="deleteStudent('${info.id}', '${info.name}')" class="px-2.5 py-1 bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold rounded-lg text-[10px]">
-                                삭제
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
 
             document.getElementById('teacher-total-sell').innerText = `${totalClassSell.toLocaleString()}원`;
             document.getElementById('teacher-total-buy').innerText = `${totalClassBuy.toLocaleString()}원`;
